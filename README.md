@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Triple Peek — Quick Start
 
-## Getting Started
+* Install:
 
-First, run the development server:
+  * Git
+  * Docker
+  * Docker Compose
+
+* Clone the project:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <YOUR_REPOSITORY_URL>
+cd triple-peek
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* Create environment file:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* Put your CSV at:
 
-## Learn More
+```text
+src/app/data/entities.csv
+```
 
-To learn more about Next.js, take a look at the following resources:
+* CSV must contain at least:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```csv
+iri,label
+http://www.wikidata.org/entity/Q183,Germany
+http://www.wikidata.org/entity/Q142,France
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* Start everything:
 
-## Deploy on Vercel
+```bash
+docker compose up --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+* Open:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+http://localhost:3000
+```
+
+* Stop:
+
+```bash
+docker compose down
+```
+
+* Delete all PostgreSQL data and test from scratch:
+
+```bash
+docker compose down -v
+docker compose up --build

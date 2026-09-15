@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  seed:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+
+    volumes:
+      - ./src/app/data:/src/app/data:ro
+
+    command:
+      [
+        "npm",
+        "run",
+        "seed",
+        "--",
+        "${SEARCH_TABLE}",
+        "${CSV_FILE}",
+        "--host",
+        "db",
+        "--db",
+        "${POSTGRES_DB}",
+        "--user",
+        "${POSTGRES_USER}",
+        "--password",
+        "${POSTGRES_PASSWORD}"
+      ]
+
+    restart: "no"
+
+  app:
+    build: .
+    restart: unless-stopped
+
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SPARQL_ENDPOINT: ${SPARQL_ENDPOINT}
+
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
