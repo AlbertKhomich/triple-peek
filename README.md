@@ -9,7 +9,7 @@
 * Clone the project:
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/AlbertKhomich/TriplePeek
 cd triple-peek
 ```
 
@@ -94,8 +94,6 @@ docker compose run --rm seed
 ```bash
 docker compose up -d --build app
 ```
-
-No database reseeding is needed for changes to `expand.sparql`.
 
 ## Delete PostgreSQL Data and Start From Scratch
 
