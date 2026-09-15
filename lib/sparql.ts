@@ -7,6 +7,10 @@ export function isValidIri(iri: string): boolean {
 }
 
 export async function describeEntity(iri: string): Promise<string> {
+  return (await describeEntityResponse(iri)).body;
+}
+
+export async function describeEntityResponse(iri: string): Promise<{ body: string; contentType: string }> {
   if (!isValidIri(iri)) throw new Error("Invalid entity IRI");
 
   const endpoint = process.env.SPARQL_ENDPOINT;
@@ -36,8 +40,8 @@ export async function describeEntity(iri: string): Promise<string> {
   }
 
   if (contentType.includes("json") && body.trim()) {
-    return JSON.stringify(JSON.parse(body), null, 2);
+    return { body: JSON.stringify(JSON.parse(body), null, 2), contentType };
   }
 
-  return body;
+  return { body, contentType };
 }

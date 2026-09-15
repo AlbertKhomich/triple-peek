@@ -1,0 +1,12 @@
+PREFIX schema: <http://schema.org/>
+
+SELECT ?name
+WHERE {
+  VALUES ?entity {
+    <${iri}>
+  }
+
+  ?entity schema:name ?name .
+
+  FILTER(LANG(?name) IN ("en", "ru", "uk", "de"))
+}
