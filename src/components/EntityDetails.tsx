@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { isSparqlResults, type SparqlBinding, type SparqlResults } from "@/lib/sparql-results";
 import LinkedText from "./LinkedText";
 
-function Binding({ binding }: { binding?: SparqlBinding }) {
-  if (!binding) return <span className="text-gray-500">—</span>;
+function Binding({ binding }: { binding: SparqlBinding }) {
   if (binding.type === "uri") {
     return /^https?:\/\//i.test(binding.value)
       ? <a href={binding.value} className="break-all text-cyan-700 underline dark:text-cyan-300" target="_blank" rel="noopener noreferrer">{binding.value}</a>
@@ -51,12 +50,12 @@ export default function EntityDetails({ iri, onData }: { iri: string; onData: (d
     const values = new Map<string, SparqlBinding>();
     for (const row of rows) {
       const binding = row[variable];
-      if (!binding) continue;
+      if (!binding?.value.trim()) continue;
       const key = JSON.stringify([binding.type, binding.value, binding["xml:lang"], binding.datatype]);
       if (!values.has(key)) values.set(key, binding);
     }
     return { variable, values: Array.from(values.values()) };
-  });
+  }).filter(({ values }) => values.length > 0);
 
   return (
     <section className="space-y-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [overflow-wrap:anywhere]" aria-label="Entity details">
@@ -71,7 +70,7 @@ export default function EntityDetails({ iri, onData }: { iri: string; onData: (d
       </div>}
       {data && (typeof data.boolean === "boolean" ? (
         <p className="text-sm">{data.boolean ? "True" : "False"}</p>
-      ) : rows.length === 0 ? (
+      ) : categories.length === 0 ? (
         <p className="text-sm">No details returned for this entity.</p>
       ) : (
           <dl className="space-y-1.5">
@@ -84,7 +83,7 @@ export default function EntityDetails({ iri, onData }: { iri: string; onData: (d
                     {label.charAt(0).toUpperCase() + label.slice(1)}:
                   </dt>{" "}
                   <dd className={isAbstract ? "m-0" : "m-0 inline"}>
-                    {values.length === 0 ? <Binding /> : values.map((binding, index) => (
+                    {values.map((binding, index) => (
                       <span key={index} className={isAbstract ? "block mb-2 last:mb-0" : undefined}>
                         {!isAbstract && index > 0 && "; "}
                         <Binding binding={binding} />

@@ -71,7 +71,7 @@ http://localhost:3000
 
 ## Normal Start
 
-Once the database has already been seeded:
+Once the search engine has already been seeded:
 
 ```bash
 docker compose up -d db app
