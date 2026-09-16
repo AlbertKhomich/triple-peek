@@ -1,4 +1,4 @@
-# Triple Peek — Quick Start
+# TriplePeek — Quick Start
 
 * Install:
 
@@ -14,6 +14,8 @@ cd triple-peek
 ```
 
 * Create environment file:
+
+Specify your SPARQL endpoint in `.env`.
 
 ```bash
 cp .env.example .env
@@ -119,6 +121,7 @@ WHERE {
   FILTER(LANG(?name) IN ("en", "ru", "uk", "de"))
 }
 ```
+It works with W3C standard SPARQL JSON result format.
 
 With Docker, rebuild the app after changing `expand.sparql`:
 

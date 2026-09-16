@@ -15,7 +15,7 @@ export default async function Home() {
         <main className="papers-page">
           <SiteHeader />
           <section className="paper-search" aria-labelledby="page-title">
-            <h1 id="page-title">Triple Peek</h1>
+            <h1 id="page-title">TriplePeek</h1>
             <Search detailsEnabled={detailsEnabled} />
           </section>
           <DiceFooter />

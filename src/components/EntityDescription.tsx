@@ -5,6 +5,12 @@ import DescribeResultPanel from "./DescribeResultPanel";
 import type { DescribeResponse } from "@/lib/describe-types";
 
 export default function EntityDescription({ iri }: { iri: string }) {
+  return <DescriptionBrowser key={iri} iri={iri} />;
+}
+
+function DescriptionBrowser({ iri }: { iri: string }) {
+  const [history, setHistory] = useState<string[]>([iri]);
+  const currentIri = history[history.length - 1];
   const [data, setData] = useState<DescribeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -22,7 +28,7 @@ export default function EntityDescription({ iri }: { iri: string }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`/api/describe?${new URLSearchParams({ iri })}`, {
+        const response = await fetch(`/api/describe?${new URLSearchParams({ iri: currentIri })}`, {
           signal: controller.signal,
           cache: "no-store",
         });
@@ -35,12 +41,22 @@ export default function EntityDescription({ iri }: { iri: string }) {
     }
     void load();
     return () => controller.abort();
-  }, [iri, attempt]);
+  }, [currentIri, attempt]);
+
+  function navigate(nextHistory: string[]) {
+    setData(null);
+    setError(null);
+    setHistory(nextHistory);
+  }
 
   return (
     <>
       <DescribeResultPanel
-        iri={iri}
+        iri={currentIri}
+        onDescribe={(nextIri) => {
+          if (nextIri !== currentIri) navigate([...history, nextIri]);
+        }}
+        onBack={history.length > 1 ? () => navigate(history.slice(0, -1)) : undefined}
         isDark={isDark}
         loading={!data && !error}
         error={error}

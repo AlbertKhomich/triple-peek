@@ -11,15 +11,7 @@ function Binding({ binding }: { binding?: SparqlBinding }) {
       : <span className="break-all">{binding.value}</span>;
   }
   if (binding.type === "bnode") return <span>_:{binding.value}</span>;
-  return (
-    <span className="whitespace-pre-wrap break-words">
-      <span className="text-amber-700 dark:text-amber-300">{binding.value}</span>
-      {binding["xml:lang"] && <span className="ml-1 text-gray-500 dark:text-gray-400">@{binding["xml:lang"]}</span>}
-      {binding.datatype && !binding["xml:lang"] && binding.datatype !== "http://www.w3.org/2001/XMLSchema#string" && (
-        <span className="block break-all text-gray-500 dark:text-gray-400">{binding.datatype}</span>
-      )}
-    </span>
-  );
+  return <span className="whitespace-pre-wrap">{binding.value}</span>;
 }
 
 export default function EntityDetails({ iri }: { iri: string }) {
@@ -49,10 +41,19 @@ export default function EntityDetails({ iri }: { iri: string }) {
 
   const variables = data?.head.vars ?? [];
   const rows = data?.results?.bindings ?? [];
+  const categories = variables.map((variable) => {
+    const values = new Map<string, SparqlBinding>();
+    for (const row of rows) {
+      const binding = row[variable];
+      if (!binding) continue;
+      const key = JSON.stringify([binding.type, binding.value, binding["xml:lang"], binding.datatype]);
+      if (!values.has(key)) values.set(key, binding);
+    }
+    return { variable, values: Array.from(values.values()) };
+  });
 
   return (
-    <section className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900/40" aria-label="Entity details">
-      <h2 className="mb-2 text-base font-semibold">Details</h2>
+    <section className="space-y-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [overflow-wrap:anywhere]" aria-label="Entity details">
       {!data && !error && <p className="text-sm" role="status">Loading details…</p>}
       {error && <div role="alert" className="text-sm">
         <p>{error}</p>
@@ -67,21 +68,27 @@ export default function EntityDetails({ iri }: { iri: string }) {
       ) : rows.length === 0 ? (
         <p className="text-sm">No details returned for this entity.</p>
       ) : (
-        <>
-          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">{rows.length} result{rows.length === 1 ? "" : "s"}</p>
-          <div className="max-h-[420px] overflow-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-black/40">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead className="bg-gray-100 text-gray-700 dark:bg-gray-800/70 dark:text-gray-200">
-                <tr>{variables.map((variable) => <th key={variable} scope="col" className="px-3 py-2 font-medium">{variable}</th>)}</tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => <tr key={index} className="border-t border-gray-200 dark:border-gray-700">
-                  {variables.map((variable) => <td key={variable} className="min-w-32 max-w-lg px-3 py-2 align-top"><Binding binding={row[variable]} /></td>)}
-                </tr>)}
-              </tbody>
-            </table>
-          </div>
-        </>
+          <dl className="space-y-1.5">
+            {categories.map(({ variable, values }) => {
+              const label = variable.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ");
+              const isAbstract = variable.toLowerCase() === "abstract";
+              return (
+                <div key={variable}>
+                  <dt className={`${isAbstract ? "block mb-1" : "inline"} font-medium`}>
+                    {label.charAt(0).toUpperCase() + label.slice(1)}:
+                  </dt>{" "}
+                  <dd className={isAbstract ? "m-0" : "m-0 inline"}>
+                    {values.length === 0 ? <Binding /> : values.map((binding, index) => (
+                      <span key={index} className={isAbstract ? "block mb-2 last:mb-0" : undefined}>
+                        {!isAbstract && index > 0 && "; "}
+                        <Binding binding={binding} />
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
       ))}
     </section>
   );

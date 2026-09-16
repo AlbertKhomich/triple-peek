@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import { FaExternalLinkSquareAlt } from "react-icons/fa";
 import DescribeLocationMap from "@/components/DescribeLocationMap";
 import { extractDescribeLocationPoints } from "@/lib/describeLocations";
 import type { DescribeQuad, DescribeTerm } from "@/lib/describe-types";
@@ -15,6 +16,8 @@ type DescribeResultPanelProps = {
   parseError: string | null;
   prefixes: Record<string, string>;
   quads: DescribeQuad[];
+  onDescribe: (iri: string) => void;
+  onBack?: () => void;
 };
 
 type PrefixMap = Record<string, string>;
@@ -87,23 +90,39 @@ function compactIri(iri: string, entries: PrefixEntry[]): string {
   return iri;
 }
 
-function renderNamedNode(iri: string, entries: PrefixEntry[], isDark: boolean): ReactNode {
+function renderNamedNode(iri: string, entries: PrefixEntry[], isDark: boolean, onDescribe: (iri: string) => void): ReactNode {
   const href = normalizeHttpHref(iri);
   const label = compactIri(iri, entries);
 
-  if (!href) return <span className="break-all">{label}</span>;
+  const linkClass = isDark ? "break-all text-cyan-300 underline" : "break-all text-cyan-700 underline";
   return (
-    <a
-      className={isDark ? "break-all text-cyan-300 underline" : "break-all text-cyan-700 underline"}
-      href={href}
-    >
-      {label}
-    </a>
+    <>
+      <button
+        type="button"
+        className={`${linkClass} cursor-pointer text-left`}
+        onClick={() => onDescribe(iri)}
+        title={`Describe ${iri}`}
+      >
+        {label}
+      </button>
+      {href && (
+        <a
+          className={`${linkClass} ml-1`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${iri} externally`}
+          title="Open externally"
+        >
+          <FaExternalLinkSquareAlt className="inline-block align-text-bottom" aria-hidden="true" />
+        </a>
+      )}
+    </>
   );
 }
 
-function renderTerm(term: DescribeTerm, entries: PrefixEntry[], isDark: boolean): ReactNode {
-  if (term.termType === "NamedNode") return renderNamedNode(term.value, entries, isDark);
+function renderTerm(term: DescribeTerm, entries: PrefixEntry[], isDark: boolean, onDescribe: (iri: string) => void): ReactNode {
+  if (term.termType === "NamedNode") return renderNamedNode(term.value, entries, isDark, onDescribe);
   if (term.termType === "BlankNode") return <span className={isDark ? "text-gray-300" : "text-gray-700"}>_:{term.value}</span>;
   if (term.termType === "DefaultGraph") return <span className={isDark ? "text-gray-400" : "text-gray-500"}>default</span>;
 
@@ -119,7 +138,7 @@ function renderTerm(term: DescribeTerm, entries: PrefixEntry[], isDark: boolean)
       {hasLanguage ? <span className={isDark ? "text-gray-300" : "text-gray-700"}>@{term.language}</span> : null}
       {hasDatatype && term.datatype ? (
         <span className={isDark ? "text-gray-300" : "text-gray-700"}>
-          ^^{renderNamedNode(term.datatype, entries, isDark)}
+          ^^{renderNamedNode(term.datatype, entries, isDark, onDescribe)}
         </span>
       ) : null}
     </span>
@@ -137,6 +156,8 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
     parseError,
     prefixes,
     quads,
+    onDescribe,
+    onBack,
   } = props;
   const rawPrefixes = parsePrefixes(body);
   const effectivePrefixes = {
@@ -156,8 +177,9 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
       aria-live="polite"
     >
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+        {onBack && <button type="button" className="result-details cursor-pointer" onClick={onBack}>← Back</button>}
         <h2 className="text-base font-semibold">Resource Description (DESCRIBE)</h2>
-        <a className="text-sm underline break-all" href={normalizeHttpHref(iri) ?? undefined}>
+        <a className="text-sm underline break-all" href={normalizeHttpHref(iri) ?? undefined} target="_blank" rel="noopener noreferrer">
           {iri}
         </a>
       </div>
@@ -238,17 +260,17 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
                     {quads.map((quad, idx) => (
                       <tr key={`quad-${idx}`} className={isDark ? "border-t border-gray-700" : "border-t border-gray-200"}>
                         <td className="align-top px-3 py-2 whitespace-normal break-words">
-                          {renderTerm(quad.subject, prefixEntries, isDark)}
+                          {renderTerm(quad.subject, prefixEntries, isDark, onDescribe)}
                         </td>
                         <td className="align-top px-3 py-2 whitespace-normal break-words">
-                          {renderTerm(quad.predicate, prefixEntries, isDark)}
+                          {renderTerm(quad.predicate, prefixEntries, isDark, onDescribe)}
                         </td>
                         <td className="align-top px-3 py-2 whitespace-normal break-words">
-                          {renderTerm(quad.object, prefixEntries, isDark)}
+                          {renderTerm(quad.object, prefixEntries, isDark, onDescribe)}
                         </td>
                         {hasNamedGraph ? (
                           <td className="align-top px-3 py-2 whitespace-normal break-words">
-                            {quad.graph ? renderTerm(quad.graph, prefixEntries, isDark) : null}
+                            {quad.graph ? renderTerm(quad.graph, prefixEntries, isDark, onDescribe) : null}
                           </td>
                         ) : null}
                       </tr>

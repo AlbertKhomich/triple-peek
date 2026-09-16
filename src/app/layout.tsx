@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Triple Peek",
+  title: "TriplePeek",
   description: "Discover research papers with DICE.",
 };
 
