@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EntityDescription from "@/components/EntityDescription";
 import EntityDetails from "@/components/EntityDetails";
 
@@ -13,12 +13,17 @@ type SearchResult = {
 
 type SearchState =
   | { status: "idle" | "loading" | "error" }
-  | { status: "success"; results: SearchResult[] };
+  | { status: "success"; results: SearchResult[]; nextCursor: string | null };
+
+type SearchPage = { results: SearchResult[]; nextCursor: string | null };
 
 export default function Search({ detailsEnabled = false }: { detailsEnabled?: boolean }) {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<SearchState>({ status: "idle" });
-  const [visibleCount, setVisibleCount] = useState(8);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState(false);
+  const requestRef = useRef<AbortController | null>(null);
+  const moreRequestRef = useRef<AbortController | null>(null);
   const [openIris, setOpenIris] = useState<Set<string>>(new Set());
   const [openDetails, setOpenDetails] = useState<Set<string>>(new Set());
   function toggleExpand(iri: string) {
@@ -39,37 +44,72 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
   }
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const resultCount = state.status === "success" ? state.results.length : 0;
-  const hasMore = visibleCount < resultCount;
+  const nextCursor = state.status === "success" ? state.nextCursor : null;
+  const hasMore = nextCursor !== null;
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || moreRequestRef.current) return;
+    const controller = new AbortController();
+    moreRequestRef.current = controller;
+    setLoadingMore(true);
+    setMoreError(false);
+    try {
+      const response = await fetch(
+        `/api/search?${new URLSearchParams({ q: query.trim(), limit: "20", cursor: nextCursor })}`,
+        { signal: controller.signal, cache: "no-store" },
+      );
+      if (!response.ok) throw new Error("Search request failed");
+      const data: SearchPage = await response.json();
+      if (!controller.signal.aborted) {
+        setState((current) => {
+          if (current.status !== "success" || current.nextCursor !== nextCursor) return current;
+          const results = new Map(current.results.map((result) => [result.iri, result]));
+          for (const result of data.results) {
+            if (!results.has(result.iri)) results.set(result.iri, result);
+          }
+          return { status: "success", results: Array.from(results.values()), nextCursor: data.nextCursor };
+        });
+      }
+    } catch {
+      if (!controller.signal.aborted) setMoreError(true);
+    } finally {
+      if (moreRequestRef.current === controller) {
+        moreRequestRef.current = null;
+        setLoadingMore(false);
+      }
+    }
+  }, [query, nextCursor]);
 
   useEffect(() => {
     const element = loadMoreRef.current;
-    if (!element || !hasMore || !("IntersectionObserver" in window)) return;
+    if (!element || !hasMore || loadingMore || moreError || !("IntersectionObserver" in window)) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0]?.isIntersecting) {
-        setVisibleCount((count) => Math.min(count + 8, resultCount));
+        void loadMore();
       }
     }, { rootMargin: "220px 0px" });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [hasMore, resultCount, visibleCount]);
+  }, [hasMore, loadingMore, moreError, loadMore]);
 
   useEffect(() => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return;
 
     const controller = new AbortController();
+    requestRef.current = controller;
     const timeout = setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/search?${new URLSearchParams({ q: trimmedQuery })}`,
+          `/api/search?${new URLSearchParams({ q: trimmedQuery, limit: "20" })}`,
           { signal: controller.signal, cache: "no-store" },
         );
         if (!response.ok) throw new Error("Search request failed");
 
-        const data: { results: SearchResult[] } = await response.json();
+        const data: SearchPage = await response.json();
         if (!controller.signal.aborted) {
-          setState({ status: "success", results: data.results });
+          setState({ status: "success", results: data.results, nextCursor: data.nextCursor });
         }
       } catch {
         if (!controller.signal.aborted) setState({ status: "error" });
@@ -79,6 +119,8 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
     return () => {
       clearTimeout(timeout);
       controller.abort();
+      moreRequestRef.current?.abort();
+      moreRequestRef.current = null;
     };
   }, [query]);
 
@@ -96,7 +138,11 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
           onChange={(event) => {
             const value = event.target.value;
             setQuery(value);
-            setVisibleCount(8);
+            requestRef.current?.abort();
+            moreRequestRef.current?.abort();
+            moreRequestRef.current = null;
+            setLoadingMore(false);
+            setMoreError(false);
             setOpenIris(new Set());
             setOpenDetails(new Set());
             setState({ status: value.trim() ? "loading" : "idle" });
@@ -110,12 +156,12 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
           {state.status === "success" && (
             state.results.length === 0
               ? "No results found. Try another label or keyword."
-              : `${state.results.length} result${state.results.length === 1 ? "" : "s"}`
+              : `${state.results.length} result${state.results.length === 1 ? "" : "s"}${hasMore ? " loaded" : ""}`
           )}
         </p>
         {state.status === "success" && state.results.length > 0 && (
           <ul className="search-result-list" aria-label="Search results">
-            {state.results.slice(0, visibleCount).map((result) => (
+            {state.results.map((result) => (
               <li className="search-result" key={result.iri}>
                 <div className="search-result-top">
                   <div className="search-result-body">
@@ -169,9 +215,14 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
         {state.status === "success" && resultCount > 0 && (
           <div ref={loadMoreRef} className="search-scroll-status">
             {hasMore ? (
-              <button className="scroll-more" type="button" onClick={() => setVisibleCount((count) => Math.min(count + 8, resultCount))}>
-                Scroll to load more
-              </button>
+              loadingMore ? <span role="status">Loading more…</span> : (
+                <>
+                  {moreError && <span role="alert">Could not load more results. </span>}
+                  <button className="scroll-more" type="button" onClick={() => void loadMore()}>
+                    {moreError ? "Try again" : "Load more"}
+                  </button>
+                </>
+              )
             ) : <span role="status">End of results.</span>}
           </div>
         )}
