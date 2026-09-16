@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import EntityPanels from "@/components/EntityPanels";
+import LinkedText from "@/components/LinkedText";
 
 type SearchResult = {
   iri: string;
@@ -166,23 +167,23 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
                   <div className="search-result-body">
                     <div className="search-result-heading">
                       <h2>
-                        <button type="button" className="search-result-link text-left cursor-pointer" onClick={() => toggleDescribe(result.iri)} aria-expanded={openIris.has(result.iri)}>
+                        {/https?:\/\//i.test(result.label) ? <LinkedText text={result.label} /> : <button type="button" className="search-result-link text-left cursor-pointer" onClick={() => toggleDescribe(result.iri)} aria-expanded={openIris.has(result.iri)}>
                           {result.label}
-                        </button>
+                        </button>}
                       </h2>
                       {result.typeLabel?.trim() && result.typeLabel.trim().length <= 80 && (
-                        <span className="search-result-type">{result.typeLabel.trim()}</span>
+                        <span className="search-result-type"><LinkedText text={result.typeLabel.trim()} /></span>
                       )}
                     </div>
-                    <button type="button" className="search-result-iri text-left cursor-pointer" onClick={() => toggleDescribe(result.iri)} aria-expanded={openIris.has(result.iri)}>
-                      {result.iri}
-                    </button>
+                    <span className="search-result-iri text-left">
+                      <LinkedText text={result.iri} />
+                    </span>
                     {result.metadata && Object.keys(result.metadata).length > 0 && (
                       <dl className="search-result-metadata">
                         {Object.entries(result.metadata).map(([name, value]) => (
                           <div key={name}>
                             <dt>{name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ")}</dt>
-                            <dd>{value}</dd>
+                            <dd><LinkedText text={value} /></dd>
                           </div>
                         ))}
                       </dl>

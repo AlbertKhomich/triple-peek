@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isSparqlResults, type SparqlBinding, type SparqlResults } from "@/lib/sparql-results";
+import LinkedText from "./LinkedText";
 
 function Binding({ binding }: { binding?: SparqlBinding }) {
   if (!binding) return <span className="text-gray-500">—</span>;
@@ -11,7 +12,7 @@ function Binding({ binding }: { binding?: SparqlBinding }) {
       : <span className="break-all">{binding.value}</span>;
   }
   if (binding.type === "bnode") return <span>_:{binding.value}</span>;
-  return <span className="whitespace-pre-wrap">{binding.value}</span>;
+  return <span className="whitespace-pre-wrap"><LinkedText text={binding.value} /></span>;
 }
 
 export default function EntityDetails({ iri, onData }: { iri: string; onData: (data: SparqlResults | null) => void }) {
