@@ -1,12 +1,18 @@
 PREFIX schema: <http://schema.org/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 
-SELECT ?name
+SELECT ?image ?coord ?description
 WHERE {
-  VALUES ?entity {
-    <${iri}>
+  OPTIONAL {
+    <${iri}> wdt:P18 ?image .
   }
 
-  ?entity schema:name ?name .
+  OPTIONAL {
+    <${iri}> wdt:P625 ?coord .
+  }
 
-  FILTER(LANG(?name) IN ("en", "ru", "uk", "de"))
+  OPTIONAL {
+    <${iri}> schema:description ?description .
+    FILTER(LANG(?description) = "en")
+  }
 }

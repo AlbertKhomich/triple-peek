@@ -34,9 +34,9 @@ Update the path in `.env` if necessary.
 * The CSV must contain at least:
 
 ```csv
-iri,label
-http://www.wikidata.org/entity/Q183,Germany
-http://www.wikidata.org/entity/Q142,France
+iri,label,typeLabel,country
+http://www.wikidata.org/entity/Q4152,Neuschwanstein Castle,museum | castle | château | tourist attraction | palace,Germany
+http://www.wikidata.org/entity/Q12874774,Castle of Didymoteicho,castle | military base,Greece
 ```
 
 ## First Setup
