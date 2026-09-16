@@ -3,8 +3,46 @@
 import { useEffect, useState } from "react";
 import { isSparqlResults, type SparqlBinding, type SparqlResults } from "@/lib/sparql-results";
 
+function imageUrl(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (!/\.(?:avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(decodeURIComponent(url.pathname))) return null;
+    // Commons supports HTTPS, including redirects through Special:FilePath.
+    if (url.hostname === "commons.wikimedia.org" || url.hostname === "upload.wikimedia.org") {
+      url.protocol = "https:";
+    }
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function DetailImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  const filename = decodeURIComponent(new URL(src).pathname.split("/").at(-1) ?? "Image").replace(/_/g, " ");
+  return (
+    <a href={src} className="inline-block max-w-full align-top text-cyan-700 underline dark:text-cyan-300" target="_blank" rel="noopener noreferrer">
+      {failed ? src : (
+        // These URLs come from the configured SPARQL endpoint and can use any image host.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={filename}
+          className="my-2 max-h-72 max-w-full rounded-lg object-contain"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </a>
+  );
+}
+
 function Binding({ binding }: { binding?: SparqlBinding }) {
   if (!binding) return <span className="text-gray-500">—</span>;
+  const src = binding.type !== "bnode" ? imageUrl(binding.value) : null;
+  if (src) return <DetailImage key={src} src={src} />;
   if (binding.type === "uri") {
     return /^https?:\/\//i.test(binding.value)
       ? <a href={binding.value} className="break-all text-cyan-700 underline dark:text-cyan-300" target="_blank" rel="noopener noreferrer">{binding.value}</a>
