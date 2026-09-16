@@ -113,8 +113,14 @@ docker compose up -d app
 
 ## Optional Details Query (`expand.sparql`)
 
-Add `src/app/data/expand.sparql` to enable a **Details** button.
+There is **Describe** button for each entity to fetch all related triples. For fetching specific triples configure optional button **Details**.
+<img width="872" height="517" alt="Screenshot 2026-09-16 at 12 19 40" src="https://github.com/user-attachments/assets/71eda5bf-5d34-4482-833c-0d18e93b7745" />
 
+Label, description, types and thumbnail are provided by **Details**.
+
+Add `src/app/data/expand.sparql` to enable a **Details** button. Delete it to remove the button.
+
+To configure **Details** make sparql query against found entity.
 Use `<${iri}>` for the selected entity:
 
 ```sparql
