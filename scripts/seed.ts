@@ -216,6 +216,52 @@ async function createTable(
       ) STORED
     )
   `);
+
+  // Serialize imports while inspecting and extending the existing schema.
+  // The caller's transaction keeps schema changes and the CSV import atomic.
+  await client.query(`LOCK TABLE ${tableName} IN SHARE ROW EXCLUSIVE MODE`);
+  const existing = await client.query<{ name: string }>(`
+    SELECT attname AS name
+    FROM pg_attribute
+    WHERE attrelid = $1::regclass
+      AND attnum > 0
+      AND NOT attisdropped
+    ORDER BY attnum
+  `, [tableName]);
+  const existingColumns = existing.rows.map((row) => row.name);
+  const missingColumns = columns.filter((column) => !existingColumns.includes(column));
+  if (missingColumns.length === 0) return;
+
+  console.log(`Adding CSV columns: ${missingColumns.join(", ")}`);
+  await client.query(`
+    ALTER TABLE ${tableName}
+    ${missingColumns.map((column) => `ADD COLUMN ${quoteIdentifier(column)} text`).join(", ")}
+  `);
+
+  // Retain all previously imported fields, including those absent from this CSV.
+  const allColumns = [
+    ...existingColumns.filter((column) => !RESERVED_COLUMNS.has(column)),
+    ...missingColumns,
+  ];
+  const updatedSearchExpression = buildSearchExpression(allColumns);
+
+  // PostgreSQL 16 requires recreating stored generated columns to change their
+  // expressions. Their indexes are removed automatically and recreated below
+  // by createIndexes(). Do not CASCADE into external views or other objects.
+  await client.query(`
+    ALTER TABLE ${tableName}
+      DROP COLUMN search_text,
+      DROP COLUMN search_vector
+  `);
+  await client.query(`
+    ALTER TABLE ${tableName}
+      ADD COLUMN search_text text GENERATED ALWAYS AS (
+        ${updatedSearchExpression}
+      ) STORED,
+      ADD COLUMN search_vector tsvector GENERATED ALWAYS AS (
+        to_tsvector('simple'::regconfig, ${updatedSearchExpression})
+      ) STORED
+  `);
 }
 
 async function createIndexes(
