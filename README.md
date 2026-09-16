@@ -15,11 +15,11 @@ cd triple-peek
 
 * Create environment file:
 
-Specify your SPARQL endpoint in `.env`.
-
 ```bash
 cp .env.example .env
 ```
+
+Specify your SPARQL endpoint in `.env`.
 
 * Let search engine know what we search for. Put your CSV with keywords at:
 

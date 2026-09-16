@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import EntityDescription from "@/components/EntityDescription";
-import EntityDetails from "@/components/EntityDetails";
+import EntityPanels from "@/components/EntityPanels";
 
 type SearchResult = {
   iri: string;
@@ -198,16 +197,9 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
                     </button>
                   </div>
                 </div>
-                {detailsEnabled && openDetails.has(result.iri) && (
-                  <div id={`details-${encodeURIComponent(result.iri)}`} className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-600">
-                    <EntityDetails iri={result.iri} />
-                  </div>
-                )}
-                {openIris.has(result.iri) && (
-                  <div id={`description-${encodeURIComponent(result.iri)}`} className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-600">
-                    <EntityDescription iri={result.iri} />
-                  </div>
-                )}
+                <EntityPanels iri={result.iri}
+                  detailsOpen={detailsEnabled && openDetails.has(result.iri)}
+                  describeOpen={openIris.has(result.iri)} />
               </li>
             ))}
           </ul>

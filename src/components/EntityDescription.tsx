@@ -4,17 +4,24 @@ import { useEffect, useState } from "react";
 import DescribeResultPanel from "./DescribeResultPanel";
 import type { DescribeResponse } from "@/lib/describe-types";
 
-export default function EntityDescription({ iri }: { iri: string }) {
-  return <DescriptionBrowser key={iri} iri={iri} />;
+type Props = { iri: string; onData: (data: DescribeResponse | null) => void };
+
+export default function EntityDescription({ iri, onData }: Props) {
+  return <DescriptionBrowser key={iri} iri={iri} onData={onData} />;
 }
 
-function DescriptionBrowser({ iri }: { iri: string }) {
+function DescriptionBrowser({ iri, onData }: Props) {
   const [history, setHistory] = useState<string[]>([iri]);
   const currentIri = history[history.length - 1];
   const [data, setData] = useState<DescribeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    onData(data);
+    return () => onData(null);
+  }, [data, onData]);
 
   useEffect(() => {
     const syncTheme = () => setIsDark(document.documentElement.classList.contains("dark"));

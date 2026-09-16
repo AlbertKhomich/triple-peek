@@ -1,9 +1,7 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { FaExternalLinkSquareAlt } from "react-icons/fa";
-import DescribeLocationMap from "@/components/DescribeLocationMap";
-import { extractDescribeLocationPoints } from "@/lib/describeLocations";
 import type { DescribeQuad, DescribeTerm } from "@/lib/describe-types";
 
 type DescribeResultPanelProps = {
@@ -30,14 +28,6 @@ const BUILTIN_PREFIXES: PrefixMap = {
   schema: "https://schema.org/",
 };
 const XSD_STRING = "http://www.w3.org/2001/XMLSchema#string";
-
-function formatCoordinate(value: number): string {
-  return value.toFixed(5).replace(/\.?0+$/, "");
-}
-
-function openStreetMapHref(latitude: number, longitude: number): string {
-  return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=12/${latitude}/${longitude}`;
-}
 
 function normalizeHttpHref(input: string): string | null {
   try {
@@ -167,7 +157,6 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
   };
   const prefixEntries = toSortedPrefixEntries(effectivePrefixes);
   const hasNamedGraph = quads.some((quad) => !!quad.graph && quad.graph.termType !== "DefaultGraph");
-  const locationPoints = useMemo(() => extractDescribeLocationPoints(quads, iri), [iri, quads]);
 
   return (
     <section
@@ -199,26 +188,6 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
               The response could not be displayed as RDF triples.
             </div>
           ) : null}
-          {locationPoints.length > 0 ? (
-            <div className="mb-4 space-y-2">
-              <div className={isDark ? "text-xs text-gray-400" : "text-xs text-gray-600"}>
-                Map
-              </div>
-              <DescribeLocationMap isDark={isDark} points={locationPoints} />
-              <div className={isDark ? "flex flex-wrap gap-3 text-xs text-gray-300" : "flex flex-wrap gap-3 text-xs text-gray-700"}>
-                {locationPoints.map((point) => (
-                  <div key={point.id} className="rounded-md border border-current/15 px-2 py-1">
-                    <span className="font-medium">{point.label}</span>: {formatCoordinate(point.latitude)},{" "}
-                    {formatCoordinate(point.longitude)}{" "}
-                    <a className="underline" href={openStreetMapHref(point.latitude, point.longitude)} target="_blank" rel="noreferrer">
-                      Open in OSM
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
           {quads.length > 0 ? (
             <div className="space-y-2">
               <div className={isDark ? "text-xs text-gray-400" : "text-xs text-gray-600"}>
