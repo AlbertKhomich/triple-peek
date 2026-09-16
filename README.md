@@ -99,6 +99,17 @@ docker compose run --rm seed
 docker compose up -d --build app
 ```
 
+## Add new IRIs
+
+Prepare new keywords.
+
+```bash
+docker compose down
+docker compose up -d db
+docker compose run --rm seed
+docker compose up -d app
+```
+
 ## Delete keywords for search engine Data and Start From Scratch
 
 Prepare new keywords.

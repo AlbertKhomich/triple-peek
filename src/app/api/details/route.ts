@@ -23,7 +23,10 @@ export async function GET(request: Request) {
     const url = new URL(endpoint);
     url.searchParams.set("query", query);
     const response = await fetch(url, {
-      headers: { Accept: "application/sparql-results+json" },
+      headers: {
+        Accept: "application/sparql-results+json",
+        "User-Agent": "TriplePeek/0.1 (https://github.com/AlbertKhomich/triple-peek)",
+      },
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
