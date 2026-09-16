@@ -23,6 +23,7 @@ export async function describeEntityResponse(iri: string): Promise<{ body: strin
     method: "GET",
     headers: {
       Accept: "text/turtle, application/n-triples;q=0.9, application/ld+json;q=0.8, application/rdf+xml;q=0.7",
+      "User-Agent": "TriplePeek/0.1 (https://github.com/AlbertKhomich/triple-peek)",
     },
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),

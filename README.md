@@ -9,7 +9,7 @@
 * Clone the project:
 
 ```bash
-git clone https://github.com/AlbertKhomich/TriplePeek
+git clone https://github.com/AlbertKhomich/triple-peek
 cd triple-peek
 ```
 
@@ -21,11 +21,13 @@ Specify your SPARQL endpoint in `.env`.
 cp .env.example .env
 ```
 
-* Put your CSV at:
+* Let search engine know what we search for. Put your CSV with keywords at:
 
 ```text
 src/app/data/entities.csv
 ```
+
+Update the path in `.env`.
 
 * CSV must contain at least:
 
@@ -43,13 +45,13 @@ http://www.wikidata.org/entity/Q142,France
 docker compose build
 ```
 
-* Start PostgreSQL:
+* Start search engine:
 
 ```bash
 docker compose up -d db
 ```
 
-* Import the CSV and create the search table/indexes:
+* Feed keywords to search engine:
 
 ```bash
 docker compose run --rm seed
@@ -83,9 +85,9 @@ This does **not** run the seed process again.
 docker compose down
 ```
 
-The PostgreSQL data is preserved.
+The keyword data for search engine is preserved.
 
-## Import Data Again
+## Import Data Again or add new bunch
 
 After changing the CSV:
 
@@ -97,7 +99,9 @@ docker compose run --rm seed
 docker compose up -d --build app
 ```
 
-## Delete PostgreSQL Data and Start From Scratch
+## Delete keywords for search engine Data and Start From Scratch
+
+Prepare new keywords.
 
 ```bash
 docker compose down -v
