@@ -13,7 +13,7 @@ git clone https://github.com/AlbertKhomich/triple-peek
 cd triple-peek
 ```
 
-* Create environment file:
+* Create the environment file:
 
 ```bash
 cp .env.example .env
@@ -21,15 +21,15 @@ cp .env.example .env
 
 Specify your SPARQL endpoint in `.env`.
 
-* Let search engine know what we search for. Put your CSV with keywords at:
+* Tell the search engine what to search for. Put your CSV with keywords at:
 
 ```text
 src/app/data/entities.csv
 ```
 
-Update the path in `.env`.
+Update the path in `.env` if necessary.
 
-* CSV must contain at least:
+* The CSV must contain at least:
 
 ```csv
 iri,label
@@ -45,13 +45,13 @@ http://www.wikidata.org/entity/Q142,France
 docker compose build
 ```
 
-* Start search engine:
+* Start the search engine:
 
 ```bash
 docker compose up -d db
 ```
 
-* Feed keywords to search engine:
+* Feed keywords to the search engine:
 
 ```bash
 docker compose run --rm seed
@@ -85,23 +85,11 @@ This does **not** run the seed process again.
 docker compose down
 ```
 
-The keyword data for search engine is preserved.
+The search engine keyword data is preserved.
 
-## Import Data Again or add new bunch
+## Add more keywords to the search engine
 
-After changing the CSV:
-
-```bash
-docker compose run --rm seed
-```
-
-```bash
-docker compose up -d --build app
-```
-
-## Add new IRIs
-
-Prepare new keywords.
+After creating a new CSV:
 
 ```bash
 docker compose down
@@ -110,9 +98,9 @@ docker compose run --rm seed
 docker compose up -d app
 ```
 
-## Delete keywords for search engine Data and Start From Scratch
+## Delete Search Engine Data and Start From Scratch
 
-Prepare new keywords.
+Prepare the new keywords.
 
 ```bash
 docker compose down -v
@@ -120,6 +108,7 @@ docker compose up -d db
 docker compose run --rm seed
 docker compose up -d app
 ```
+
 ## Optional Details Query (`expand.sparql`)
 
 Add `src/app/data/expand.sparql` to enable a **Details** button.
@@ -136,7 +125,8 @@ WHERE {
   FILTER(LANG(?name) IN ("en", "ru", "uk", "de"))
 }
 ```
-It works with W3C standard SPARQL JSON result format.
+
+It works with the W3C standard SPARQL JSON result format.
 
 With Docker, rebuild the app after changing `expand.sparql`:
 
