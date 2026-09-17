@@ -227,7 +227,9 @@ TriplePeek can also show an optional **Details** button using:
 src/app/data/expand.sparql
 ```
 
-<img width="872" height="517" alt="Screenshot 2026-09-16 at 12 19 40" src="https://github.com/user-attachments/assets/71eda5bf-5d34-4482-833c-0d18e93b7745" />
+<img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
+
+Image, coord and descsription are provided by **Details**.
 
 The repository includes a demo `expand.sparql`.
 
