@@ -145,7 +145,7 @@ To reset the existing search data:
 docker compose down -v
 docker compose up -d db
 docker compose run --rm seed
-docker compose up -d app
+docker compose up -d --build app
 ```
 
 ## Import and Update the Search Catalog
