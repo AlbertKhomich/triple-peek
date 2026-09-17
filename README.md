@@ -226,14 +226,11 @@ TriplePeek can also show an optional **Details** button using:
 ```text
 src/app/data/expand.sparql
 ```
-
-<img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
-
-Image, coord and descsription are provided by **Details**.
-
 The repository includes a demo `expand.sparql`.
 
-In the bundled demo, `expand.sparql` retrieves the label, description, types, and thumbnail.
+In the bundled demo, `expand.sparql` retrieves the image, coord and description.
+
+<img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
 
 Write any SPARQL `SELECT` query you want in this file. Use `<${iri}>` wherever the selected search result should act as the query anchor.
 
