@@ -242,7 +242,7 @@ The bundled demo includes:
 * `details.sparql` — retrieves the image, coordinates, and description for the selected Wikidata entity
 * `embedding.sparql` — uses the selected entity as an anchor and retrieves its embedding from another SPARQL endpoint through a federated `SERVICE` query
 
-<img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
+<img width="870" height="906" alt="Screenshot 2026-09-17 at 18 41 59" src="https://github.com/user-attachments/assets/4af5efe7-b3aa-4801-92c5-b295e24200fd" />
 
 Each file can contain a read-only SPARQL `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query.
 
