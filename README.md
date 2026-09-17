@@ -4,7 +4,7 @@
 
 TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
 
-It uses a local **search catalog** for fast entity discovery and retrieves live RDF data from a SPARQL endpoint.
+It uses a local **search catalog** for fast entity discovery and configurable SPARQL queries for retrieving live RDF data.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ Create the environment file:
 cp .env.example .env
 ```
 
-The repository includes a ready-to-run Wikidata demo with a matching search catalog, `buttons/details.sparql` query, and SPARQL endpoint configured in `.env.example`.
+The repository includes a ready-to-run Wikidata demo with a matching search catalog, example query buttons, and SPARQL endpoint configured in `.env.example`.
 
 Start it:
 
@@ -58,7 +58,7 @@ docker compose down
 
 ## How It Works
 
-```text
+```
 Search catalog
      │
      ▼
@@ -66,14 +66,21 @@ PostgreSQL
      │
      │ search
      ▼
-   IRI
+   IRI found
      │
-     ▼
-SPARQL endpoint
+     ├── Describe
      │
-     ▼
-Live RDF data
+     └── Custom query buttons
+            │
+            ▼
+      SPARQL endpoint
+            │
+            ├── RDF data
+            │
+            └── SERVICE → other SPARQL endpoints
 ```
+
+TriplePeek searches a local catalog, then uses the discovered IRI as an anchor for queries against the configured SPARQL endpoint and, optionally, other endpoints through `SERVICE`.
 
 The CSV is **not required to be an export of the knowledge graph**.
 
@@ -136,7 +143,7 @@ To connect TriplePeek to another knowledge graph:
 
 1. Change `SPARQL_ENDPOINT` in `.env`.
 2. Replace the demo search catalog with one containing IRIs from your endpoint.
-3. Optionally add queries tailored to your dataset in `src/app/data/buttons/`.
+3. Optionally add custom query buttons in `src/app/data/buttons/`.
 4. Reset the search database and import the new catalog.
 
 To reset the existing search data:
