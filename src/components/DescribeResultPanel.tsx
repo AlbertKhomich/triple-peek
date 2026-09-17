@@ -5,6 +5,7 @@ import { FaExternalLinkSquareAlt } from "react-icons/fa";
 import type { DescribeQuad, DescribeTerm } from "@/lib/describe-types";
 
 type DescribeResultPanelProps = {
+  title?: string;
   body: string;
   contentType: string;
   error: string | null;
@@ -167,13 +168,13 @@ export default function DescribeResultPanel(props: DescribeResultPanelProps) {
     >
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
         {onBack && <button type="button" className="result-details cursor-pointer" onClick={onBack}>← Back</button>}
-        <h2 className="text-base font-semibold">Resource Description (DESCRIBE)</h2>
+        <h2 className="text-base font-semibold">{props.title ?? "Resource Description (DESCRIBE)"}</h2>
         <a className="text-sm underline break-all" href={normalizeHttpHref(iri) ?? undefined} target="_blank" rel="noopener noreferrer">
           {iri}
         </a>
       </div>
 
-      {loading ? <div className="text-sm">Loading resource description...</div> : null}
+      {loading ? <div className="text-sm" role="status">{props.title ? "Loading query results..." : "Loading resource description..."}</div> : null}
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
       {!loading && !error ? (

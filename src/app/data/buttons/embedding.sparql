@@ -1,0 +1,11 @@
+PREFIX emb: <https://ontology.embeddings.cc/>
+
+SELECT ?embedding
+WHERE {
+  SERVICE <https://sparql.embeddings.cc/sparql> {
+    GRAPH <https://data.embeddings.cc/wikidata> {
+      <${iri}>
+        emb:hasKeciEmbeddings ?embedding .
+    }
+  }
+}

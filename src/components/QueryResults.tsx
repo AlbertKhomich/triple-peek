@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { isSparqlResults, type SparqlBinding, type SparqlResults } from "@/lib/sparql-results";
+import { type SparqlBinding, type SparqlResults } from "@/lib/sparql-results";
 import LinkedText from "./LinkedText";
 
 function Binding({ binding }: { binding: SparqlBinding }) {
@@ -14,36 +13,7 @@ function Binding({ binding }: { binding: SparqlBinding }) {
   return <span className="whitespace-pre-wrap"><LinkedText text={binding.value} /></span>;
 }
 
-export default function EntityDetails({ iri, onData }: { iri: string; onData: (data: SparqlResults | null) => void }) {
-  const [data, setData] = useState<SparqlResults | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    onData(data);
-    return () => onData(null);
-  }, [data, onData]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    async function load() {
-      try {
-        const response = await fetch(`/api/details?${new URLSearchParams({ iri })}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        if (!response.ok) throw new Error("Details request failed");
-        const payload: unknown = await response.json();
-        if (!isSparqlResults(payload)) throw new Error("Invalid SPARQL results");
-        if (!controller.signal.aborted) setData(payload);
-      } catch {
-        if (!controller.signal.aborted) setError("Details could not be loaded. Please try again shortly.");
-      }
-    }
-    void load();
-    return () => controller.abort();
-  }, [iri, attempt]);
-
+export default function QueryResults({ data }: { data: SparqlResults }) {
   const variables = data?.head.vars ?? [];
   const rows = data?.results?.bindings ?? [];
   const categories = variables.map((variable) => {
@@ -58,20 +28,11 @@ export default function EntityDetails({ iri, onData }: { iri: string; onData: (d
   }).filter(({ values }) => values.length > 0);
 
   return (
-    <section className="space-y-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [overflow-wrap:anywhere]" aria-label="Entity details">
-      {!data && !error && <p className="text-sm" role="status">Loading details…</p>}
-      {error && <div role="alert" className="text-sm">
-        <p>{error}</p>
-        <button className="result-details mt-3 cursor-pointer" type="button" onClick={() => {
-          setError(null);
-          setData(null);
-          setAttempt((value) => value + 1);
-        }}>Try again</button>
-      </div>}
+    <section className="space-y-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300 [overflow-wrap:anywhere]" aria-label="Query results">
       {data && (typeof data.boolean === "boolean" ? (
         <p className="text-sm">{data.boolean ? "True" : "False"}</p>
       ) : categories.length === 0 ? (
-        <p className="text-sm">No details returned for this entity.</p>
+        <p className="text-sm">No results returned for this entity.</p>
       ) : (
           <dl className="space-y-1.5">
             {categories.map(({ variable, values }) => {

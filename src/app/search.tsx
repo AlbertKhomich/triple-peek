@@ -1,5 +1,7 @@
 "use client";
 
+import type { QueryButton } from "@/lib/query-types";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import EntityPanels from "@/components/EntityPanels";
 import LinkedText from "@/components/LinkedText";
@@ -17,7 +19,7 @@ type SearchState =
 
 type SearchPage = { results: SearchResult[]; nextCursor: string | null };
 
-export default function Search({ detailsEnabled = false }: { detailsEnabled?: boolean }) {
+export default function Search({ buttons = [] }: { buttons?: QueryButton[] }) {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<SearchState>({ status: "idle" });
   const [loadingMore, setLoadingMore] = useState(false);
@@ -25,12 +27,13 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
   const requestRef = useRef<AbortController | null>(null);
   const moreRequestRef = useRef<AbortController | null>(null);
   const [openIris, setOpenIris] = useState<Set<string>>(new Set());
-  const [openDetails, setOpenDetails] = useState<Set<string>>(new Set());
-  function toggleExpand(iri: string) {
-    setOpenDetails((current) => {
+  const [openButtons, setOpenButtons] = useState<Set<string>>(new Set());
+  function toggleButton(iri: string, button: string) {
+    const key = JSON.stringify([iri, button]);
+    setOpenButtons((current) => {
       const next = new Set(current);
-      if (next.has(iri)) next.delete(iri);
-      else next.add(iri);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -144,7 +147,7 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
             setLoadingMore(false);
             setMoreError(false);
             setOpenIris(new Set());
-            setOpenDetails(new Set());
+            setOpenButtons(new Set());
             setState({ status: value.trim() ? "loading" : "idle" });
           }}
         />
@@ -189,17 +192,22 @@ export default function Search({ detailsEnabled = false }: { detailsEnabled?: bo
                       </dl>
                     )}
                   </div>
-                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                    {detailsEnabled && <button type="button" className="result-details cursor-pointer" onClick={() => toggleExpand(result.iri)} aria-expanded={openDetails.has(result.iri)} aria-controls={`details-${encodeURIComponent(result.iri)}`}>
-                      {openDetails.has(result.iri) ? "Hide details" : "Details"}
-                    </button>}
+                  <div className="flex shrink-0 flex-col gap-2 sm:max-w-[50%] sm:flex-row sm:flex-wrap sm:justify-end">
+                    {buttons.map((button) => {
+                      const isOpen = openButtons.has(JSON.stringify([result.iri, button.id]));
+                      return <button key={button.id} type="button" className="result-details cursor-pointer"
+                        onClick={() => toggleButton(result.iri, button.id)} aria-expanded={isOpen}
+                        aria-controls={`query-${encodeURIComponent(result.iri)}-${encodeURIComponent(button.id)}`}>
+                        {isOpen ? `Hide ${button.label}` : button.label}
+                      </button>;
+                    })}
                     <button type="button" className="result-details cursor-pointer" onClick={() => toggleDescribe(result.iri)} aria-expanded={openIris.has(result.iri)} aria-controls={`description-${encodeURIComponent(result.iri)}`}>
                       {openIris.has(result.iri) ? "Hide describe" : "Describe"}
                     </button>
                   </div>
                 </div>
                 <EntityPanels iri={result.iri}
-                  detailsOpen={detailsEnabled && openDetails.has(result.iri)}
+                  buttons={buttons.filter((button) => openButtons.has(JSON.stringify([result.iri, button.id])))}
                   describeOpen={openIris.has(result.iri)} />
               </li>
             ))}

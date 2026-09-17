@@ -2,12 +2,12 @@ import Search from "./search";
 import GraphBackground from "@/components/GraphBackground";
 import SiteHeader from "@/components/SiteHeader";
 import DiceFooter from "@/components/DiceFooter";
-import { hasExpandQuery } from "../../lib/expand-query";
+import { listQueryButtons } from "../../lib/query-buttons";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const detailsEnabled = await hasExpandQuery();
+  const buttons = await listQueryButtons();
   return (
     <>
       <GraphBackground />
@@ -16,7 +16,7 @@ export default async function Home() {
           <SiteHeader />
           <section className="paper-search" aria-labelledby="page-title">
             <h1 id="page-title">TriplePeek</h1>
-            <Search detailsEnabled={detailsEnabled} />
+            <Search buttons={buttons} />
           </section>
           <DiceFooter />
         </main>

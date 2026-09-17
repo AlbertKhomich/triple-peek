@@ -27,7 +27,7 @@ Create the environment file:
 cp .env.example .env
 ```
 
-The repository includes a ready-to-run Wikidata demo with a matching search catalog, `expand.sparql` query, and SPARQL endpoint configured in `.env.example`.
+The repository includes a ready-to-run Wikidata demo with a matching search catalog, `buttons/details.sparql` query, and SPARQL endpoint configured in `.env.example`.
 
 Start it:
 
@@ -136,7 +136,7 @@ To connect TriplePeek to another knowledge graph:
 
 1. Change `SPARQL_ENDPOINT` in `.env`.
 2. Replace the demo search catalog with one containing IRIs from your endpoint.
-3. Optionally replace `expand.sparql` with a query tailored to your dataset.
+3. Optionally add queries tailored to your dataset in `src/app/data/buttons/`.
 4. Reset the search database and import the new catalog.
 
 To reset the existing search data:
@@ -217,22 +217,23 @@ The CSV is streamed through `csv-parse`, headers and IRIs are validated, and row
 
 Any failure exits with a nonzero status and leaves the search catalog unchanged.
 
-## Optional Details Query
+## Optional Query Buttons
 
 Every result has a **Describe** button for retrieving related RDF triples.
 
-TriplePeek can also show an optional **Details** button using:
+Add a `.sparql` file for each optional button in:
 
 ```text
-src/app/data/expand.sparql
+src/app/data/buttons/
+  details.sparql          → Details
+  embedding.sparql        → Embedding
 ```
-The repository includes a demo `expand.sparql`.
 
-In the bundled demo, `expand.sparql` retrieves the image, coord and description.
+In the bundled demo, `details.sparql` retrieves the image, coord and description, while `embedding.sparql` gets embedding from different sparql endpoint using `SERVICE`.
 
 <img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
 
-Write any SPARQL `SELECT` query you want in this file. Use `<${iri}>` wherever the selected search result should act as the query anchor.
+Write a read-only SPARQL `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query in each file. Use `<${iri}>` wherever the selected search result should act as the query anchor. Templates are trusted server-side configuration; SPARQL updates are not supported.
 
 For example:
 
@@ -251,13 +252,13 @@ WHERE {
 }
 ```
 
-When a user opens **Details**, TriplePeek replaces `${iri}` with the IRI of the selected search result and sends the query to the configured SPARQL endpoint.
+When a user opens a custom button, TriplePeek replaces `${iri}` with the IRI of the selected search result and sends the query to the configured SPARQL endpoint.
 
 The query can use that entity as an anchor to retrieve any data supported by your dataset.
 
-Delete `expand.sparql` if you do not want the **Details** button.
+Delete `.sparql` if you do not want the button.
 
-After changing `expand.sparql` in Docker, rebuild the app:
+After changing query files in Docker, rebuild the app:
 
 ```bash
 docker compose up -d --build app
