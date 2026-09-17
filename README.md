@@ -27,7 +27,7 @@ Create the environment file:
 cp .env.example .env
 ```
 
-The repository includes a ready-to-run Wikidata demo with a matching search catalog and `expand.sparql` query.
+The repository includes a ready-to-run Wikidata demo with a matching search catalog, `expand.sparql` query, and SPARQL endpoint configured in `.env.example`.
 
 Start it:
 
@@ -75,7 +75,7 @@ SPARQL endpoint
 Live RDF data
 ```
 
-The CSV is therefore **not an export of the knowledge graph**.
+The CSV is **not required to be an export of the knowledge graph**.
 
 It is a search layer that maps useful search terms to RDF resources.
 
@@ -91,11 +91,12 @@ The default catalog is:
 src/app/data/entities.csv
 ```
 
-The catalog must contain at least these two columns:
+The catalog must contain these two columns:
 
-* `iri` - **required**; identifies the resource in the configured SPARQL endpoint.
-* `label` - **required**; the human-readable label shown in search results.
-* Any additional columns are searchable metadata.
+* `iri` — **required**; identifies the resource in the configured SPARQL endpoint.
+* `label` — **required**; the human-readable label shown in search results.
+
+Any additional columns are optional and treated as searchable metadata.
 
 Example:
 
@@ -107,7 +108,7 @@ http://www.wikidata.org/entity/Q12874774,Castle of Didymoteicho,castle | militar
 
 Each row represents one RDF resource.
 
-Only the `iri` needs to correspond directly to the RDF resource.
+Only the `iri` must correspond directly to an RDF resource.
 
 The `label` and other search values can come from the RDF dataset, but they do not have to. They can be transformed, enriched, or manually curated specifically for search.
 
@@ -135,8 +136,8 @@ To connect TriplePeek to another knowledge graph:
 
 1. Change `SPARQL_ENDPOINT` in `.env`.
 2. Replace the demo search catalog with one containing IRIs from your endpoint.
-3. Optionally replace `expand.sparql` with a query matching your dataset.
-4. Re-import the catalog.
+3. Optionally replace `expand.sparql` with a query tailored to your dataset.
+4. Reset the search database and import the new catalog.
 
 To reset the existing search data:
 
@@ -147,31 +148,74 @@ docker compose run --rm seed
 docker compose up -d app
 ```
 
-## Import and Update Search Data
+## Import and Update the Search Catalog
 
-You can import additional rows only if their `iri` values are not already present in the search catalog.
+Without `--update`, all IRIs in the CSV must be new.
 
-Prepare a CSV containing only new IRIs, then run:
+Import new catalog entries with:
 
 ```bash
 docker compose run --rm seed
 ```
 
-To insert new IRIs and update existing ones, import with `--update`:
+To insert new IRIs and replace catalog data for existing IRIs, use `--update`:
 
 ```bash
 docker compose run --rm seed -- --update
 ```
 
-For an existing IRI, the new CSV row replaces its label and all searchable metadata. Empty values clear previous values, and metadata columns omitted from the CSV are cleared to `NULL` for that IRI. Values are not merged. IRIs absent from the CSV remain unchanged.
+For an existing IRI, the new CSV row replaces its label and all searchable metadata.
 
-Without --update, an existing IRI causes the entire import to fail and roll back.
+Empty values clear previous values, and metadata columns omitted from the CSV are cleared to `NULL` for that IRI. Values are not merged.
+
+IRIs absent from the CSV remain unchanged.
+
+Without `--update`, an existing IRI causes the entire import to fail and roll back.
 
 For a local import without Docker:
 
 ```bash
 npm run seed -- entity_search src/app/data/entities.csv --db triplepeek --user triplepeek --update
 ```
+
+## Validate a Search Catalog
+
+Every seed validates the entire CSV before modifying the search catalog.
+
+Validation checks:
+
+* CSV syntax and consistent row widths
+* required `iri` and `label` headers
+* valid IRIs using strict RFC 3987 validation
+* duplicate IRIs
+
+Duplicate IRIs within the CSV are rejected even with `--update`.
+
+To validate without seeding in Docker:
+
+```bash
+docker compose run --rm seed validate-catalog
+```
+
+Docker Compose starts PostgreSQL automatically and waits until it is ready. The command uses `CSV_FILE` and the database credentials from `.env`; no local PostgreSQL installation or connection flags are needed.
+
+Normal seeding also validates automatically:
+
+```bash
+docker compose run --rm seed
+```
+
+For local use with an accessible PostgreSQL database:
+
+```bash
+npm run validate-catalog -- src/app/data/entities.csv --db triplepeek --user triplepeek
+```
+
+Local npm commands do not load `.env`. They support `--host`, `--port`, and `--password`.
+
+The CSV is streamed through `csv-parse`, headers and IRIs are validated, and rows are copied into a temporary PostgreSQL staging table whose primary key detects duplicate IRIs. Standalone validation discards the staging table; seeding imports it only after all checks succeed.
+
+Any failure exits with a nonzero status and leaves the search catalog unchanged.
 
 ## Optional Details Query
 
@@ -185,11 +229,11 @@ src/app/data/expand.sparql
 
 <img width="872" height="517" alt="Screenshot 2026-09-16 at 12 19 40" src="https://github.com/user-attachments/assets/71eda5bf-5d34-4482-833c-0d18e93b7745" />
 
-Label, description, types and thumbnail are provided by **Details**.
-
 The repository includes a demo `expand.sparql`.
 
-Inside this file, write any SPARQL `SELECT` query you want and use `<${iri}>` wherever you need the currently selected entity as the anchor.
+In the bundled demo, `expand.sparql` retrieves the label, description, types, and thumbnail.
+
+Write any SPARQL `SELECT` query you want in this file. Use `<${iri}>` wherever the selected search result should act as the query anchor.
 
 For example:
 
@@ -210,7 +254,7 @@ WHERE {
 
 When a user opens **Details**, TriplePeek replaces `${iri}` with the IRI of the selected search result and sends the query to the configured SPARQL endpoint.
 
-The query can fetch any data related to that entity according to your dataset schema.
+The query can use that entity as an anchor to retrieve any data supported by your dataset.
 
 Delete `expand.sparql` if you do not want the **Details** button.
 

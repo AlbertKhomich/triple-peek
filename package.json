@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "validate-catalog": "tsx scripts/validate-catalog.ts"
   },
   "dependencies": {
     "-": "^0.0.1-security.1",
@@ -19,7 +20,8 @@
     "pg-copy-streams": "^7.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-icons": "^5.7.0"
+    "react-icons": "^5.7.0",
+    "validate-iri": "^1.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
