@@ -56,6 +56,29 @@ Stop it with:
 docker compose down
 ```
 
+## How It Works
+
+```text
+Search catalog
+     │
+     ▼
+PostgreSQL
+     │
+     │ search
+     ▼
+   IRI
+     │
+     ▼
+SPARQL endpoint
+     │
+     ▼
+Live RDF data
+```
+
+The CSV is therefore **not an export of the knowledge graph**.
+
+It is a search layer that maps useful search terms to RDF resources.
+
 ## Search Catalog
 
 TriplePeek does **not** automatically index your knowledge graph.
@@ -68,7 +91,7 @@ The default catalog is:
 src/app/data/entities.csv
 ```
 
-The catalog must contain these two columns.
+The catalog must contain at least these two columns:
 
 * `iri` - **required**; identifies the resource in the configured SPARQL endpoint.
 * `label` - **required**; the human-readable label shown in search results.
@@ -106,29 +129,6 @@ You can create the catalog by:
 * generating it with a script or ETL pipeline
 * manually curating or enriching search terms
 
-## How It Works
-
-```text
-Search catalog
-     │
-     ▼
-PostgreSQL
-     │
-     │ search
-     ▼
-   IRI
-     │
-     ▼
-SPARQL endpoint
-     │
-     ▼
-Live RDF data
-```
-
-The CSV is therefore **not an export of the knowledge graph**.
-
-It is a search layer that maps useful search terms to RDF resources.
-
 ## Use Your Own Dataset
 
 To connect TriplePeek to another knowledge graph:
@@ -147,7 +147,7 @@ docker compose run --rm seed
 docker compose up -d app
 ```
 
-## Add More Search Data
+## Import and Update Search Data
 
 You can import additional rows only if their `iri` values are not already present in the search catalog.
 
@@ -157,13 +157,20 @@ Prepare a CSV containing only new IRIs, then run:
 docker compose run --rm seed
 ```
 
-If you need to change data for an IRI that already exists, reset the search database and import the updated catalog again:
+To insert new IRIs and update existing ones, import with `--update`:
 
 ```bash
-docker compose down -v
-docker compose up -d db
-docker compose run --rm seed
-docker compose up -d app
+docker compose run --rm seed -- --update
+```
+
+For an existing IRI, the new CSV row replaces its label and all searchable metadata. Empty values clear previous values, and metadata columns omitted from the CSV are cleared to `NULL` for that IRI. Values are not merged. IRIs absent from the CSV remain unchanged.
+
+Without --update, an existing IRI causes the entire import to fail and roll back.
+
+For a local import without Docker:
+
+```bash
+npm run seed -- entity_search src/app/data/entities.csv --db triplepeek --user triplepeek --update
 ```
 
 ## Optional Details Query

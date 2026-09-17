@@ -31,7 +31,7 @@ function parseArgs(): Args {
     throw new Error(
       [
         "Usage:",
-        "  npm run seed -- <table> <csv> --db <database> --user <user>",
+        "  npm run seed -- <table> <csv> --db <database> --user <user> [--update]",
         "",
         "Example:",
         "  npm run seed -- entity_search entities.csv --db triplepeek --user akhomich",
@@ -230,7 +230,12 @@ async function createTable(
   `, [tableName]);
   const existingColumns = existing.rows.map((row) => row.name);
   const missingColumns = columns.filter((column) => !existingColumns.includes(column));
-  if (missingColumns.length === 0) return;
+  // Keep the full catalog schema, even when this CSV omits older fields.
+  const allColumns = [
+    ...existingColumns.filter((column) => !RESERVED_COLUMNS.has(column)),
+    ...missingColumns,
+  ];
+  if (missingColumns.length === 0) return allColumns;
 
   console.log(`Adding CSV columns: ${missingColumns.join(", ")}`);
   await client.query(`
@@ -238,11 +243,6 @@ async function createTable(
     ${missingColumns.map((column) => `ADD COLUMN ${quoteIdentifier(column)} text`).join(", ")}
   `);
 
-  // Retain all previously imported fields, including those absent from this CSV.
-  const allColumns = [
-    ...existingColumns.filter((column) => !RESERVED_COLUMNS.has(column)),
-    ...missingColumns,
-  ];
   const updatedSearchExpression = buildSearchExpression(allColumns);
 
   // PostgreSQL 16 requires recreating stored generated columns to change their
@@ -262,6 +262,7 @@ async function createTable(
         to_tsvector('simple'::regconfig, ${updatedSearchExpression})
       ) STORED
   `);
+  return allColumns;
 }
 
 async function createIndexes(
@@ -366,6 +367,7 @@ async function upsertCsv(
   client: Client,
   table: string,
   columns: string[],
+  catalogColumns: string[],
   csvPath: string
 ) {
   await createTempTable(
@@ -384,7 +386,7 @@ async function upsertCsv(
     .map(quoteIdentifier)
     .join(", ");
 
-  const updateColumns = columns.filter(
+  const updateColumns = catalogColumns.filter(
     (column) => column !== "iri"
   );
 
@@ -393,8 +395,13 @@ async function upsertCsv(
   if (updateColumns.length > 0) {
     const updates = updateColumns
       .map(
-        (column) =>
-          `${quoteIdentifier(column)} = EXCLUDED.${quoteIdentifier(column)}`
+        (column) => {
+          // Each incoming row replaces all searchable fields for this IRI.
+          const value = columns.includes(column)
+            ? `EXCLUDED.${quoteIdentifier(column)}`
+            : "NULL";
+          return `${quoteIdentifier(column)} = ${value}`;
+        }
       )
       .join(", ");
 
@@ -469,7 +476,7 @@ async function main() {
       `Preparing table '${args.table}'...`
     );
 
-    await createTable(
+    const catalogColumns = await createTable(
       client,
       args.table,
       columns
@@ -493,6 +500,7 @@ async function main() {
         client,
         args.table,
         columns,
+        catalogColumns,
         csvPath
       );
     } else {
