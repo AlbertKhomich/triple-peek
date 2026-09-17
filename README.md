@@ -68,6 +68,12 @@ The default catalog is:
 src/app/data/entities.csv
 ```
 
+The catalog must contain these two columns.
+
+* `iri` - **required**; identifies the resource in the configured SPARQL endpoint.
+* `label` - **required**; the human-readable label shown in search results.
+* Any additional columns are searchable metadata.
+
 Example:
 
 ```csv
@@ -77,10 +83,6 @@ http://www.wikidata.org/entity/Q12874774,Castle of Didymoteicho,castle | militar
 ```
 
 Each row represents one RDF resource.
-
-* `iri` identifies the resource in the configured SPARQL endpoint.
-* `label` is the human-readable label shown in search results.
-* Any additional columns are searchable metadata.
 
 Only the `iri` needs to correspond directly to the RDF resource.
 
