@@ -1,20 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FaImage } from "react-icons/fa";
 import DescribeLocationMap from "./DescribeLocationMap";
 import type { DescribeLocationPoint } from "@/lib/describeLocations";
 import { imageKey } from "@/lib/entityMedia";
 
 function DetailImage({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const filename = decodeURIComponent(new URL(src).pathname.split("/").at(-1) ?? "Image").replace(/_/g, " ");
   return (
-    <a href={src} className="inline-block max-w-full text-cyan-700 underline dark:text-cyan-300" target="_blank" rel="noopener noreferrer">
+    <a href={src} className="relative flex h-72 w-96 max-w-full shrink-0 items-center justify-center overflow-auto rounded-lg bg-gray-100 text-cyan-700 underline break-all dark:bg-gray-800 dark:text-cyan-300" target="_blank" rel="noopener noreferrer">
+      {!failed && (
+        <span aria-hidden="true" className={`pointer-events-none absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none ${loadedSrc === src ? "opacity-0" : "opacity-100"}`}>
+          <span className={`flex h-full w-full items-center justify-center bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 ${loadedSrc !== src ? "animate-pulse motion-reduce:animate-none" : ""}`}>
+            <FaImage className="h-12 w-12" />
+          </span>
+        </span>
+      )}
       {failed ? src : (
         // SPARQL results may reference images on any host.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={filename} className="max-h-72 max-w-full rounded-lg object-contain"
-          loading="lazy" decoding="async" onError={() => setFailed(true)} />
+        <img src={src} alt={filename} className={`relative h-full w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${loadedSrc === src ? "opacity-100" : "opacity-0"}`}
+          loading="lazy" decoding="async" onLoad={() => setLoadedSrc(src)} onError={() => setFailed(true)} />
       )}
     </a>
   );
