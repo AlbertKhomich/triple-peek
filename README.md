@@ -219,21 +219,34 @@ Any failure exits with a nonzero status and leaves the search catalog unchanged.
 
 ## Optional Query Buttons
 
-Every result has a **Describe** button for retrieving related RDF triples.
+Every search result includes a **Describe** button for retrieving RDF triples for the selected resource.
 
-Add a `.sparql` file for each optional button in:
+You can add additional query buttons by placing `.sparql` files in:
 
 ```text
 src/app/data/buttons/
-  details.sparql          → Details
-  embedding.sparql        → Embedding
 ```
 
-In the bundled demo, `details.sparql` retrieves the image, coord and description, while `embedding.sparql` gets embedding from different sparql endpoint using `SERVICE`.
+For example:
+
+```text
+src/app/data/buttons/
+  details.sparql      → Details
+  embedding.sparql    → Embedding
+```
+
+Each file creates a button whose name is derived from the filename.
+
+The bundled demo includes:
+
+* `details.sparql` — retrieves the image, coordinates, and description for the selected Wikidata entity
+* `embedding.sparql` — uses the selected entity as an anchor and retrieves its embedding from another SPARQL endpoint through a federated `SERVICE` query
 
 <img width="874" height="684" alt="Screenshot 2026-09-17 at 12 16 25" src="https://github.com/user-attachments/assets/ed244c64-9d0c-40b4-acf6-5a48fd68aebf" />
 
-Write a read-only SPARQL `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query in each file. Use `<${iri}>` wherever the selected search result should act as the query anchor. Templates are trusted server-side configuration; SPARQL updates are not supported.
+Each file can contain a read-only SPARQL `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query.
+
+Use `<${iri}>` wherever the selected search result should act as the query anchor.
 
 For example:
 
@@ -254,11 +267,13 @@ WHERE {
 
 When a user opens a custom button, TriplePeek replaces `${iri}` with the IRI of the selected search result and sends the query to the configured SPARQL endpoint.
 
-The query can use that entity as an anchor to retrieve any data supported by your dataset.
+The query can use that entity as an anchor to retrieve any data supported by the endpoint, including data from other SPARQL endpoints through `SERVICE`.
 
-Delete `.sparql` if you do not want the button.
+Query templates are trusted server-side configuration. SPARQL update operations are not supported.
 
-After changing query files in Docker, rebuild the app:
+To remove a button, delete its corresponding `.sparql` file.
+
+After adding, removing, or changing query files in Docker, rebuild the app:
 
 ```bash
 docker compose up -d --build app
