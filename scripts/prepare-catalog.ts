@@ -5,22 +5,19 @@ import { loadEnvFile } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 
-function paginateQuery(query: string): string {
-  // Keep PREFIX/BASE declarations outside the subquery. The inner query retains
-  // its grouping, ordering and any user-supplied LIMIT/OFFSET.
+function validateQuery(query: string): string {
+  // Skip declarations only when checking the query form; preserve the original text.
   const gap = String.raw`(?:\s|#[^\r\n]*(?:\r?\n|$))*`;
   const declaration = new RegExp(`^${gap}(?:BASE${gap}<[^>]*>|PREFIX\\s+[^\\s:]*:${gap}<[^>]*>)`, "i");
   let body = query;
-  let prologue = "";
   let match: RegExpMatchArray | null;
   while ((match = body.match(declaration))) {
-    prologue += match[0];
     body = body.slice(match[0].length);
   }
   if (!new RegExp(`^${gap}SELECT\\b`, "i").test(body)) {
     throw new Error("create-catalog.sparql must contain a SELECT query.");
   }
-  return `${prologue}\nSELECT * WHERE {\n{\n${body}\n}\n}`;
+  return query;
 }
 
 function readColumns(result: unknown): string[] {
@@ -103,7 +100,7 @@ function parseOptions() {
 }
 
 async function main() {
-  const query = paginateQuery(await readFile(path.join(process.cwd(), "src/app/data/create-catalog.sparql"), "utf8"));
+  const query = validateQuery(await readFile(path.join(process.cwd(), "src/app/data/create-catalog.sparql"), "utf8"));
   const { pageSize, maxFileSize, maxRows } = parseOptions();
 
   // Explicit environment variables take precedence over values in .env.
