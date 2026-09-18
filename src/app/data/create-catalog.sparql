@@ -1,0 +1,30 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT
+  ?iri
+  ?label
+  (GROUP_CONCAT(DISTINCT ?typeName; separator=" | ") AS ?typeLabel)
+  (GROUP_CONCAT(DISTINCT ?countryName; separator=" | ") AS ?country)
+WHERE {
+  ?iri wdt:P31/wdt:P279* wd:Q23413 ;
+       wdt:P18 ?image ;
+       wdt:P625 ?coord ;
+       rdfs:label ?label .
+
+  FILTER(LANG(?label) = "en")
+
+  OPTIONAL {
+    ?iri wdt:P31 ?type .
+    ?type rdfs:label ?typeName .
+    FILTER(LANG(?typeName) = "en")
+  }
+
+  OPTIONAL {
+    ?iri wdt:P17 ?countryEntity .
+    ?countryEntity rdfs:label ?countryName .
+    FILTER(LANG(?countryName) = "en")
+  }
+}
+GROUP BY ?iri ?label

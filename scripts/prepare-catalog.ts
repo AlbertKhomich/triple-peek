@@ -1,83 +1,41 @@
 import { existsSync } from "node:fs";
-import { chown, mkdir, mkdtemp, open, rename, rm, stat } from "node:fs/promises";
+import { chown, mkdir, mkdtemp, open, readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvFile } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 
-import configuredPatterns from "../src/app/data/catalog-patterns.json";
-import { isValidIri } from "../lib/sparql";
-
-type PatternConfig = {
-  name: string;
-  column: string;
-  labelPredicate: string;
-  relation?: string;
-  language?: string;
-};
-type Probe = { key: string; name: string; pattern: string; language: string };
-
-function loadProbes(): Probe[] {
-  const columns = new Set(["iri"]);
-  return (configuredPatterns as PatternConfig[]).map((entry) => {
-    const language = entry.language ?? "en";
-    if (typeof language !== "string" || !/^(?:[A-Za-z]+(?:-[A-Za-z0-9]+)*|\*)?$/.test(language)) {
-      throw new Error(`Invalid label language in catalog pattern: ${entry.name}`);
-    }
-    if (!entry.name || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(entry.column)
-      || columns.has(entry.column)) {
-      throw new Error("Catalog patterns need a name and a unique SPARQL-safe column (other than iri).");
-    }
-    if (!isValidIri(entry.labelPredicate)
-      || (entry.relation !== undefined && !isValidIri(entry.relation))) {
-      throw new Error(`Invalid predicate IRI in catalog pattern: ${entry.name}`);
-    }
-    columns.add(entry.column);
-    return {
-      key: entry.column,
-      name: entry.name,
-      language,
-      pattern: entry.relation
-        ? `?s <${entry.relation}> ?type .\n?type <${entry.labelPredicate}> ?typeLabel .`
-        : `?s <${entry.labelPredicate}> ?label .`,
-    };
-  });
+function paginateQuery(query: string): string {
+  // Keep PREFIX/BASE declarations outside the subquery. The inner query retains
+  // its grouping, ordering and any user-supplied LIMIT/OFFSET.
+  const gap = String.raw`(?:\s|#[^\r\n]*(?:\r?\n|$))*`;
+  const declaration = new RegExp(`^${gap}(?:BASE${gap}<[^>]*>|PREFIX\\s+[^\\s:]*:${gap}<[^>]*>)`, "i");
+  let body = query;
+  let prologue = "";
+  let match: RegExpMatchArray | null;
+  while ((match = body.match(declaration))) {
+    prologue += match[0];
+    body = body.slice(match[0].length);
+  }
+  if (!new RegExp(`^${gap}SELECT\\b`, "i").test(body)) {
+    throw new Error("create-catalog.sparql must contain a SELECT query.");
+  }
+  return `${prologue}\nSELECT * WHERE {\n{\n${body}\n}\n}`;
 }
 
-function buildQuery(matches: Probe[]): { query: string; columns: string[] } {
-  const columns = ["iri", ...matches.map((probe) => probe.key)];
-  const candidates = matches.map((probe) => {
-    // Only discover subjects here; output labels come from the OPTIONAL blocks.
-    const pattern = probe.pattern.split("\n", 1)[0]
-      .replace(/\?s\b/g, "?iri")
-      .replace(/\?(label|type)\b/g, `?candidate_${probe.key}`);
-    return `  { ${pattern} }`;
-  });
-  const blocks = matches.map((probe) => {
-    const column = probe.key;
-    const pattern = probe.pattern
-      .replace(/\?s\b/g, "?iri")
-      .replace(/\?(label|typeLabel)\b/g, `?${column}`)
-      // Keep type variables independent across OPTIONAL blocks.
-      .replace(/\?type\b/g, `?${column}Type`);
-    const languageFilter = probe.language === ""
-      ? `LANG(?${column}) = ""`
-      : `LANGMATCHES(LANG(?${column}), "${probe.language}")`;
-    const filter = `FILTER(isLiteral(?${column}) && ${languageFilter})`;
-    return `  OPTIONAL {
-    ${pattern.split("\n").join("\n    ")}
-    ${filter}
-  }`;
-  });
-  return {
-    columns,
-    query: `SELECT ${columns.map((column) => `?${column}`).join(" ")}
-WHERE {
-${candidates.length ? candidates.join("\n  UNION\n") : "  FILTER(false)"}
-  FILTER(isIRI(?iri))
-${blocks.join("\n")}
-}`,
-  };
+function readColumns(result: unknown): string[] {
+  if (!result || typeof result !== "object" || !("head" in result)
+    || !result.head || typeof result.head !== "object" || !("vars" in result.head)
+    || !Array.isArray(result.head.vars)
+    || !result.head.vars.every((column): column is string => typeof column === "string" && column.length > 0)) {
+    throw new Error("SELECT did not return SPARQL JSON variable names");
+  }
+  const columns = result.head.vars;
+  if (!columns.includes("iri") || new Set(columns).size !== columns.length) {
+    throw new Error("Catalog SELECT must return unique columns including ?iri.");
+  }
+  // The importer expects the IRI in the first column.
+  return ["iri", ...columns.filter((column) => column !== "iri")];
 }
 
 function csvField(value: string): string {
@@ -109,22 +67,22 @@ function readRows(result: unknown, columns: string[]): Record<string, Binding>[]
 function parseOptions() {
   const { values, positionals } = parseArgs({
     options: {
-      limit: { type: "string" },
+      "page-size": { type: "string" },
       "max-rows": { type: "string" },
       "max-file-size": { type: "string" },
       "file-size": { type: "string" },
     },
     allowPositionals: true,
   });
-  if (positionals.length > 2 || (values.limit !== undefined && positionals.length > 0)
+  if (positionals.length > 2 || (values["page-size"] !== undefined && positionals.length > 0)
     || (values["max-file-size"] !== undefined && values["file-size"] !== undefined)
     || (positionals.length > 1 && (values["max-file-size"] !== undefined || values["file-size"] !== undefined))) {
-    throw new Error("Use --limit <rows> --max-file-size <bytes|10MB|null>, or positional <limit> [size].");
+    throw new Error("Use --page-size <rows> --max-file-size <bytes|10MB|null>, or positional <page-size> [size].");
   }
-  const rawLimit = values.limit ?? positionals[0] ?? "1000";
-  const limit = Number(rawLimit);
-  if (!/^[1-9]\d*$/.test(rawLimit) || !Number.isSafeInteger(limit)) {
-    throw new Error("--limit must be a positive safe integer (default: 1000).");
+  const rawPageSize = values["page-size"] ?? positionals[0] ?? "1000";
+  const pageSize = Number(rawPageSize);
+  if (!/^[1-9]\d*$/.test(rawPageSize) || !Number.isSafeInteger(pageSize)) {
+    throw new Error("--page-size must be a positive safe integer (default: 1000).");
   }
   const rawSize = values["max-file-size"] ?? values["file-size"] ?? positionals[1] ?? "null";
   let maxFileSize: number | null = null;
@@ -141,12 +99,12 @@ function parseOptions() {
   if (maxRows !== null && (!/^[1-9]\d*$/.test(rawRows) || !Number.isSafeInteger(maxRows))) {
     throw new Error("--max-rows must be a positive safe integer or null (default).");
   }
-  return { limit, maxFileSize, maxRows };
+  return { pageSize, maxFileSize, maxRows };
 }
 
 async function main() {
-  const probes = loadProbes();
-  const { limit, maxFileSize, maxRows } = parseOptions();
+  const query = paginateQuery(await readFile(path.join(process.cwd(), "src/app/data/create-catalog.sparql"), "utf8"));
+  const { pageSize, maxFileSize, maxRows } = parseOptions();
 
   // Explicit environment variables take precedence over values in .env.
   if (existsSync(".env")) loadEnvFile(".env");
@@ -182,32 +140,31 @@ async function main() {
     const file = await open(temporaryFile, "wx");
     let total = 0;
     try {
-      const matches: Probe[] = [];
-      for (const [index, probe] of probes.entries()) {
-        const result = await request(`ASK {\n${probe.pattern}\n}`, `ASK ${index + 1} (${probe.name})`, false);
-        if (!result || typeof result !== "object" || !("boolean" in result) || typeof result.boolean !== "boolean") {
-          throw new Error(`ASK ${index + 1} (${probe.name}) did not return a SPARQL JSON boolean`);
-        }
-        console.error(`[${index + 1}/${probes.length}] ${probe.name}: ${result.boolean}`);
-        if (result.boolean) {
-          matches.push(probe);
-        }
-      }
-
-      const { query, columns } = buildQuery(matches);
-      const header = columns.join(",") + "\n";
-      let bytes = Buffer.byteLength(header, "utf8");
-      if (maxFileSize !== null && bytes > maxFileSize) {
-        throw new Error(`CSV header requires ${bytes} bytes, exceeding --max-file-size.`);
-      }
-      await file.writeFile(header);
+      let columns: string[] | undefined;
+      let bytes = 0;
       let offset = 0;
-      let sizeReached = maxFileSize !== null && bytes === maxFileSize;
-      while (matches.length > 0 && !sizeReached && (maxRows === null || total < maxRows)) {
-        const pageLimit = maxRows === null ? limit : Math.min(limit, maxRows - total);
+      let sizeReached = false;
+      while (!sizeReached && (maxRows === null || total < maxRows)) {
+        const pageLimit = maxRows === null ? pageSize : Math.min(pageSize, maxRows - total);
         const pageQuery = `${query}\nLIMIT ${pageLimit}\nOFFSET ${offset}`;
         const result = await request(pageQuery, `catalog SELECT at offset ${offset}`);
+        const pageColumns = readColumns(result);
+        if (!columns) {
+          columns = pageColumns;
+          const header = columns.map(csvField).join(",") + "\n";
+          bytes = Buffer.byteLength(header, "utf8");
+          if (maxFileSize !== null && bytes > maxFileSize) {
+            throw new Error(`CSV header requires ${bytes} bytes, exceeding --max-file-size.`);
+          }
+          await file.writeFile(header);
+        } else if (columns.length !== pageColumns.length || columns.some((column, index) => column !== pageColumns[index])) {
+          throw new Error("SELECT columns changed between pages");
+        }
         const rows = readRows(result, columns);
+        if (maxFileSize !== null && bytes === maxFileSize) {
+          sizeReached = true;
+          break;
+        }
         if (rows.length > pageLimit) throw new Error(`Endpoint exceeded requested LIMIT ${pageLimit}`);
         if (rows.length === 0) break;
         const lines: string[] = [];

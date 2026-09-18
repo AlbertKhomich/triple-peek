@@ -82,11 +82,14 @@ Search catalog
                  └── SERVICE → other SPARQL endpoints
 ```
 
-TriplePeek does not search the SPARQL endpoint directly for every keystroke.
+TriplePeek does not query the SPARQL endpoint for every search keystroke.
 
 Instead, searchable entity metadata is stored locally in PostgreSQL. Search returns an IRI, and that IRI becomes the anchor for live queries against the configured SPARQL endpoint.
 
 This keeps text search fast while leaving the RDF data in its original knowledge graph.
+
+The search catalog can remain intentionally small and optimized for discovery even when the underlying knowledge graph is very large.
+
 
 ## Search Catalog
 
@@ -120,6 +123,12 @@ http://www.wikidata.org/entity/Q4152,Neuschwanstein Castle,museum | castle | ch�
 http://www.wikidata.org/entity/Q12874774,Castle of Didymoteicho,castle | military base,Greece
 ```
 
+TriplePeek gives special treatment to the third column when it is named `typeLabel`.
+
+If `typeLabel` is non-empty and at most 80 characters long, it is displayed as a badge beside the result heading.
+
+Other metadata columns are displayed below the heading and IRI as name/value pairs.
+
 The additional values do not need to correspond one-to-one with RDF properties.
 
 They can be:
@@ -143,9 +152,11 @@ even if those exact strings do not all occur in the source graph.
 
 The catalog is a **search layer**, not a copy of the knowledge graph.
 
+For more precise search behavior, you can create the catalog manually instead of generating it automatically. This is useful when you want to carefully choose, combine, or enrich search terms for your dataset.
+
 ## Automatically Create a Search Catalog
 
-TriplePeek can inspect a SPARQL endpoint and create the catalog automatically.
+TriplePeek creates the catalog by executing your query from `src/app/data/create-catalog.sparql` against the configured SPARQL endpoint.
 
 Set your endpoint and output file in `.env`:
 
@@ -163,123 +174,18 @@ docker compose build prepare-catalog
 Generate a catalog:
 
 ```bash
-docker compose run --rm prepare-catalog --limit 1000 --max-rows 10000
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
 ```
+
+`--page-size` controls the number of rows requested from the SPARQL endpoint per page.
 
 Or limit the generated file by size:
 
 ```bash
-docker compose run --rm prepare-catalog --limit 1000 --max-file-size 10MB
+docker compose run --rm prepare-catalog --page-size 1000 --max-file-size 10MB
 ```
 
 Without `--max-rows` or `--max-file-size`, export continues until the endpoint returns an empty page.
-
-When run as root in Docker, the generator assigns the CSV to the owner of the output directory, so you can edit it on the host without changing permissions or passing a user ID.
-
-### What the generator does
-
-Before exporting data, TriplePeek sends a set of small `ASK` queries to determine which configured RDF patterns are supported by the endpoint.
-
-The default patterns cover common entity metadata including:
-
-* `rdfs:label`
-* `skos:prefLabel`
-* `schema:name`
-* `foaf:name`
-* `rdf:type`
-* RDFS superclasses
-* Wikidata `P31`
-* Wikidata `P279`
-
-Only supported patterns are included in the generated `SELECT` query.
-
-This means the same catalog generator can work with different RDF datasets without assuming that every endpoint uses the same vocabulary.
-
-The generated query is printed before execution.
-
-Results are fetched sequentially in pages using `LIMIT` and `OFFSET`.
-
-A one-second pause is added between endpoint requests.
-
-### Configure Catalog Discovery
-
-Discovery patterns are defined in:
-
-```text
-src/app/data/catalog-patterns.json
-```
-
-Example:
-
-```json
-{
-  "name": "schema:name (HTTPS)",
-  "column": "schemaHttpsName",
-  "labelPredicate": "https://schema.org/name",
-  "language": "en"
-}
-```
-
-Each pattern can define:
-
-* `name` — human-readable name used in logs
-* `column` — generated CSV column and SPARQL variable
-* `labelPredicate` — RDF property containing the value
-* `language` — optional literal language filter
-* `relation` — optional relationship to follow before reading the label
-
-For example, a pattern using `rdf:type` as its relation can store the labels of an entity's RDF types rather than labels attached directly to the entity.
-
-Supported language values include:
-
-```text
-"en"
-"de"
-"fr"
-"en-GB"
-""
-"*"
-```
-
-`""` selects untagged literals.
-
-`"*"` accepts any non-empty language tag.
-
-Patterns can be added, removed, or reordered without changing the catalog-generation code.
-
-Because the pattern configuration is mounted into the Docker container, changes to `catalog-patterns.json` do not require rebuilding the image.
-
-## Generated Catalog Behavior
-
-The generated `SELECT` query discovers candidate IRIs from all supported patterns.
-
-Metadata values are then retrieved using independent `OPTIONAL` blocks.
-
-This is important because an entity is not removed simply because one particular label, type, or metadata field is missing.
-
-Missing values become empty CSV fields.
-
-The export is intentionally raw. A knowledge graph may return multiple rows for the same IRI because of:
-
-* multiple RDF types
-* multiple superclass relationships
-* multiple labels
-* combinations of optional properties
-
-TriplePeek handles these duplicates during validation.
-
-Rows sharing the same IRI are grouped into a single catalog row, and unique non-empty values from each metadata column are joined with:
-
-```text
- | 
-```
-
-For example:
-
-```csv
-iri,label,typeLabel
-http://example.org/123,Example Entity,Person | Researcher | Author
-```
 
 ## Import the Search Catalog
 
@@ -343,7 +249,7 @@ To connect TriplePeek to another SPARQL endpoint:
 
 1. Set `SPARQL_ENDPOINT` in `.env`.
 2. Set `CSV_FILE` to the desired catalog path.
-3. Generate the catalog.
+3. Edit `src/app/data/create-catalog.sparql` for your dataset and generate the catalog.
 4. Seed PostgreSQL.
 5. Start the application.
 
@@ -354,7 +260,7 @@ docker compose build prepare-catalog
 ```
 
 ```bash
-docker compose run --rm prepare-catalog --limit 1000 --max-rows 10000
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
 ```
 
 ```bash
@@ -387,27 +293,27 @@ Catalog generation supports two optional limits.
 Limit the number of data rows:
 
 ```bash
-docker compose run --rm prepare-catalog --limit 1000 --max-rows 10000
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
 ```
 
 Limit the output file size:
 
 ```bash
-docker compose run --rm prepare-catalog --limit 1000 --max-file-size 10MB
+docker compose run --rm prepare-catalog --page-size 1000 --max-file-size 10MB
 ```
 
 Both options can be combined:
 
 ```bash
 docker compose run --rm prepare-catalog \
-  --limit 1000 \
+  --page-size 1000 \
   --max-rows 100000 \
   --max-file-size 100MB
 ```
 
 Export stops when the first configured limit is reached.
 
-`--limit` controls the number of rows requested from the SPARQL endpoint per page.
+`--page-size` controls the number of rows requested from the SPARQL endpoint per page.
 
 File sizes support:
 
@@ -505,42 +411,4 @@ After adding, removing, or modifying query files, rebuild the application:
 docker compose up -d --build app
 ```
 
-## Architecture
-
-TriplePeek deliberately separates **entity discovery** from **RDF retrieval**.
-
-```text
-              ┌──────────────────────┐
-              │    Search Catalog    │
-              │         CSV          │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │      PostgreSQL      │
-              │   full-text search   │
-              └──────────┬───────────┘
-                         │
-                    selected IRI
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │      TriplePeek      │
-              └──────────┬───────────┘
-                         │
-                    SPARQL queries
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │   SPARQL Endpoint    │
-              └──────────┬───────────┘
-                         │
-                         └──── SERVICE ────► other endpoints
-```
-
 The search catalog can therefore remain intentionally small and optimized for discovery even when the underlying knowledge graph contains billions of triples.
-
-TODO:
-- label appears as the main clickable result heading.
-- typeLabel appears as a badge beside the heading, provided it’s nonempty and at most 80 characters long.
-Other metadata fields appear below the heading and IRI as name/value pairs.
