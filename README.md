@@ -58,6 +58,114 @@ Stop it with:
 docker compose down
 ```
 
+## Try It With Your Own Knowledge Graph
+
+Once the demo is running, you can point TriplePeek at your own SPARQL endpoint.
+
+### 1. Configure your endpoint
+
+Set your endpoint and catalog path in `.env`:
+
+```env
+SPARQL_ENDPOINT=https://example.org/sparql
+CSV_FILE=/src/app/data/search-catalog.csv
+```
+
+### 2. Create the search catalog
+
+Edit:
+
+```text
+src/app/data/create-catalog.sparql
+```
+
+for your dataset.
+
+The query must return:
+
+```text
+iri
+label
+```
+
+and may return additional columns containing searchable metadata; `typeLabel` on third place would be great!
+
+Generate the catalog:
+
+```bash
+docker compose build prepare-catalog
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
+```
+
+For more precise or domain-specific search behavior, you can also create the catalog CSV manually.
+
+### 3. Configure query buttons
+
+The demo includes query buttons configured for its Wikidata dataset.
+
+They are stored in:
+
+```text
+src/app/data/buttons/
+```
+
+Remove the demo `.sparql` files if they are not applicable to your endpoint, or replace them with queries for your own dataset.
+
+For example:
+
+```text
+src/app/data/buttons/
+  details.sparql
+  related.sparql
+```
+
+Use `<${iri}>` in a query wherever the selected search result should be inserted.
+
+For example:
+
+```sparql
+PREFIX schema: <http://schema.org/>
+
+SELECT ?name ?description
+WHERE {
+  OPTIONAL {
+    <${iri}> schema:name ?name .
+  }
+
+  OPTIONAL {
+    <${iri}> schema:description ?description .
+  }
+}
+```
+
+Each `.sparql` file creates a button automatically. You can also leave the directory empty if you only want the built-in **Describe** action.
+
+### 4. Import the catalog
+
+Reset the demo search database and import your catalog:
+
+```bash
+docker compose down -v
+docker compose up -d db
+docker compose run --rm seed
+```
+
+### 5. Start TriplePeek
+
+```bash
+docker compose up -d --build app
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+You now have TriplePeek running against your own knowledge graph.
+
+The sections below explain the search catalog, catalog generation, validation, updates, and query buttons in more detail.
+
 ## How It Works
 
 ```text
@@ -242,49 +350,6 @@ docker compose run --rm seed validate-catalog
 The CSV is streamed during validation instead of being loaded entirely into memory.
 
 A temporary PostgreSQL staging table is used to validate and detect duplicate IRIs before any search data is changed.
-
-## Use Your Own Knowledge Graph
-
-To connect TriplePeek to another SPARQL endpoint:
-
-1. Set `SPARQL_ENDPOINT` in `.env`.
-2. Set `CSV_FILE` to the desired catalog path.
-3. Edit `src/app/data/create-catalog.sparql` for your dataset and generate the catalog.
-4. Seed PostgreSQL.
-5. Start the application.
-
-For example:
-
-```bash
-docker compose build prepare-catalog
-```
-
-```bash
-docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
-```
-
-```bash
-docker compose up -d db
-docker compose run --rm seed
-docker compose up -d --build app
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-If you switch to a completely different dataset and want to discard the existing search database:
-
-```bash
-docker compose down -v
-docker compose up -d db
-docker compose run --rm seed
-docker compose up -d --build app
-```
-
-You can also skip automatic catalog generation and provide your own CSV if you already have a curated search dataset.
 
 ## Catalog Generation Limits
 
