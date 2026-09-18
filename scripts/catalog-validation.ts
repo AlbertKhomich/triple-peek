@@ -5,9 +5,11 @@ import { parse } from "csv-parse";
 import type { Client } from "pg";
 import { from as copyFrom } from "pg-copy-streams";
 import { validateIri } from "validate-iri";
+import { ensureLabelColumn, groupCsv } from "./catalog-transform";
 
 export const RESERVED_COLUMNS = new Set(["search_text", "search_vector"]);
 const REQUIRED_COLUMNS = new Set(["iri", "label"]);
+class DuplicateCatalogIrisError extends Error {}
 
 export function quoteIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
@@ -53,6 +55,23 @@ function validateHeaders(record: string[]): string[] {
 // The caller owns the transaction. Only these staged rows may be seeded after
 // validation succeeds; ON COMMIT DROP and rollback both clean up the table.
 export async function validateCatalog(client: Client, csvPath: string) {
+  await ensureLabelColumn(csvPath);
+  await client.query("SAVEPOINT catalog_validation");
+  try {
+    const result = await validateCatalogOnce(client, csvPath);
+    await client.query("RELEASE SAVEPOINT catalog_validation");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK TO SAVEPOINT catalog_validation");
+    await client.query("RELEASE SAVEPOINT catalog_validation");
+    if (!(error instanceof DuplicateCatalogIrisError)) throw error;
+    console.log("CSV contains duplicate IRIs; grouping values by iri and retrying validation once.");
+    await groupCsv(csvPath, csvPath, "iri");
+    return validateCatalogOnce(client, csvPath);
+  }
+}
+
+async function validateCatalogOnce(client: Client, csvPath: string) {
   let columns: string[] = [];
   let rows = 0;
   await pipeline(
@@ -91,7 +110,7 @@ export async function validateCatalog(client: Client, csvPath: string) {
         );
       } catch (error) {
         if ((error as { code?: string }).code === "23505") {
-          throw new Error("CSV contains duplicate IRIs", { cause: error });
+          throw new DuplicateCatalogIrisError("CSV contains duplicate IRIs", { cause: error });
         }
         throw error;
       }

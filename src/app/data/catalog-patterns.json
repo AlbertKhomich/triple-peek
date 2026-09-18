@@ -1,0 +1,60 @@
+[
+  {
+    "name": "rdf:label",
+    "column": "label",
+    "labelPredicate": "http://www.w3.org/2000/01/rdf-schema#label",
+    "language": "en"
+  },
+  {
+    "name": "skos:prefLabel",
+    "column": "skosPrefLabel",
+    "labelPredicate": "http://www.w3.org/2004/02/skos/core#prefLabel",
+    "language": "en"
+  },
+  {
+    "name": "schema:name (HTTP)",
+    "column": "schemaName",
+    "labelPredicate": "http://schema.org/name",
+    "language": "en"
+  },
+  {
+    "name": "schema:name (HTTPS)",
+    "column": "schemaNameS",
+    "labelPredicate": "https://schema.org/name",
+    "language": "en"
+  },
+  {
+    "name": "foaf:name",
+    "column": "foafName",
+    "labelPredicate": "http://xmlns.com/foaf/0.1/name",
+    "language": "en"
+  },
+  {
+    "name": "rdf:type with labelled type",
+    "column": "typeLabel",
+    "labelPredicate": "http://www.w3.org/2000/01/rdf-schema#label",
+    "relation": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+    "language": ""
+  },
+  {
+    "name": "rdfs:subClassOf with labelled superclass",
+    "column": "subClassLabel",
+    "labelPredicate": "http://www.w3.org/2000/01/rdf-schema#label",
+    "relation": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+    "language": ""
+  },
+  {
+    "name": "Wikidata P31 with labelled type",
+    "column": "wikidataTypeLabel",
+    "labelPredicate": "http://www.w3.org/2000/01/rdf-schema#label",
+    "relation": "http://www.wikidata.org/prop/direct/P31",
+    "language": ""
+  },
+  {
+    "name": "Wikidata P279 with labelled superclass",
+    "column": "wikidataSubClassLabel",
+    "labelPredicate": "http://www.w3.org/2000/01/rdf-schema#label",
+    "relation": "http://www.wikidata.org/prop/direct/P279",
+    "language": ""
+  }
+]
