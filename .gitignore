@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Temporary catalog export and repair files
+.prepare-catalog-*/
+.catalog-*/

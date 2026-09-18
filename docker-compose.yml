@@ -36,11 +36,25 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
     volumes:
-      - ./src/app/data:/src/app/data:ro
+      - ./src/app/data:/src/app/data
+      - ./src/app/data:/src/app/src/app/data
 
     entrypoint: ["sh", "scripts/seed-docker.sh"]
     command: []
 
+    restart: "no"
+
+  prepare-catalog:
+    build: .
+    profiles: ["tools"]
+    environment:
+      SPARQL_ENDPOINT: ${SPARQL_ENDPOINT}
+      CSV_FILE: ${CSV_FILE}
+    volumes:
+      - ./src/app/data:/src/app/data
+      - ./src/app/data:/src/app/src/app/data
+    entrypoint: ["./node_modules/.bin/tsx", "scripts/prepare-catalog.ts"]
+    command: []
     restart: "no"
 
   app:

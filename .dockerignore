@@ -4,3 +4,7 @@ node_modules
 .env
 .env.local
 npm-debug.log
+
+# Temporary CSV staging directories may be owned by the Docker container user.
+**/.prepare-catalog-*
+**/.catalog-*

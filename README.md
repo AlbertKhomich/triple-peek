@@ -1,10 +1,12 @@
-<img width="1771" height="952" alt="Screenshot 2026-09-16 at 15 29 52" src="https://github.com/user-attachments/assets/de1bccb6-fac9-4a21-afc8-902ab4523114" />
+<img width="1771" height="952" alt="TriplePeek" src="https://github.com/user-attachments/assets/de1bccb6-fac9-4a21-afc8-902ab4523114" />
 
 # TriplePeek
 
 TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
 
-It uses a local **search catalog** for fast entity discovery and configurable SPARQL queries for retrieving live RDF data.
+It combines a local PostgreSQL **search catalog** for fast entity discovery with configurable SPARQL queries for retrieving live RDF data.
+
+The search catalog can be provided as a CSV or generated automatically from your SPARQL endpoint.
 
 ## Quick Start
 
@@ -27,7 +29,7 @@ Create the environment file:
 cp .env.example .env
 ```
 
-The repository includes a ready-to-run Wikidata demo with a matching search catalog, example query buttons, and SPARQL endpoint configured in `.env.example`.
+The repository includes a ready-to-run Wikidata demo.
 
 Start it:
 
@@ -44,7 +46,7 @@ Open:
 http://localhost:3000
 ```
 
-After the first setup, start TriplePeek with:
+After the initial setup, start TriplePeek with:
 
 ```bash
 docker compose up -d db app
@@ -58,54 +60,62 @@ docker compose down
 
 ## How It Works
 
-```
+```text
 Search catalog
-     │
-     ▼
-PostgreSQL
-     │
-     │ search
-     ▼
+      │
+      ▼
+ PostgreSQL
+      │
+      │ search
+      ▼
    IRI found
-     │
-     ├── Describe
-     │
-     └── Custom query buttons
-            │
-            ▼
-      SPARQL endpoint
-            │
-            ├── RDF data
-            │
-            └── SERVICE → other SPARQL endpoints
+      │
+      ├── Describe
+      │
+      └── Custom query buttons
+                 │
+                 ▼
+          SPARQL endpoint
+                 │
+                 ├── RDF data
+                 │
+                 └── SERVICE → other SPARQL endpoints
 ```
 
-TriplePeek searches a local catalog, then uses the discovered IRI as an anchor for queries against the configured SPARQL endpoint and, optionally, other endpoints through `SERVICE`.
+TriplePeek does not query the SPARQL endpoint for every search keystroke.
 
-The CSV is **not required to be an export of the knowledge graph**.
+Instead, searchable entity metadata is stored locally in PostgreSQL. Search returns an IRI, and that IRI becomes the anchor for live queries against the configured SPARQL endpoint.
 
-It is a search layer that maps useful search terms to RDF resources.
+This keeps text search fast while leaving the RDF data in its original knowledge graph.
+
+The search catalog can remain intentionally small and optimized for discovery even when the underlying knowledge graph is very large.
+
 
 ## Search Catalog
 
-TriplePeek does **not** automatically index your knowledge graph.
+The search catalog maps search terms to RDF resources.
 
-Instead, you provide a CSV **search catalog** that defines how users discover RDF resources.
-
-The default catalog is:
+The default catalog path is configured through `CSV_FILE` and normally points to:
 
 ```text
-src/app/data/entities.csv
+src/app/data/search-catalog.csv
 ```
 
-The catalog must contain these two columns:
+A catalog must contain at least:
 
-* `iri` — **required**; identifies the resource in the configured SPARQL endpoint.
-* `label` — **required**; the human-readable label shown in search results.
+```csv
+iri,label
+http://www.wikidata.org/entity/Q183,Germany
+http://www.wikidata.org/entity/Q142,France
+```
 
-Any additional columns are optional and treated as searchable metadata.
+`iri` identifies the RDF resource.
 
-Example:
+`label` is the primary human-readable value shown and searched by TriplePeek.
+
+Additional columns are automatically treated as searchable metadata.
+
+For example:
 
 ```csv
 iri,label,typeLabel,country
@@ -113,13 +123,22 @@ http://www.wikidata.org/entity/Q4152,Neuschwanstein Castle,museum | castle | ch�
 http://www.wikidata.org/entity/Q12874774,Castle of Didymoteicho,castle | military base,Greece
 ```
 
-Each row represents one RDF resource.
+TriplePeek gives special treatment to the third column when it is named `typeLabel`.
 
-Only the `iri` must correspond directly to an RDF resource.
+If `typeLabel` is non-empty and at most 80 characters long, it is displayed as a badge beside the result heading.
 
-The `label` and other search values can come from the RDF dataset, but they do not have to. They can be transformed, enriched, or manually curated specifically for search.
+Other metadata columns are displayed below the heading and IRI as name/value pairs.
 
-For example, terms such as:
+The additional values do not need to correspond one-to-one with RDF properties.
+
+They can be:
+
+* exported from the knowledge graph
+* transformed from RDF values
+* enriched with alternative terminology
+* manually curated for better search
+
+For example, a castle could intentionally contain search terms such as:
 
 ```text
 castle
@@ -129,24 +148,134 @@ palace
 Germany
 ```
 
-can be added to help users discover an entity even if those exact values do not occur in the knowledge graph.
+even if those exact strings do not all occur in the source graph.
 
-You can create the catalog by:
+The catalog is a **search layer**, not a copy of the knowledge graph.
 
-* exporting selected properties with SPARQL
-* generating it with a script or ETL pipeline
-* manually curating or enriching search terms
+For more precise search behavior, you can create the catalog manually instead of generating it automatically. This is useful when you want to carefully choose, combine, or enrich search terms for your dataset.
 
-## Use Your Own Dataset
+## Automatically Create a Search Catalog
 
-To connect TriplePeek to another knowledge graph:
+TriplePeek creates the catalog by executing your query from `src/app/data/create-catalog.sparql` against the configured SPARQL endpoint.
 
-1. Change `SPARQL_ENDPOINT` in `.env`.
-2. Replace the demo search catalog with one containing IRIs from your endpoint.
-3. Optionally add custom query buttons in `src/app/data/buttons/`.
-4. Reset the search database and import the new catalog.
+Set your endpoint and output file in `.env`:
 
-To reset the existing search data:
+```env
+SPARQL_ENDPOINT=https://query.wikidata.org/sparql
+CSV_FILE=/src/app/data/search-catalog.csv
+```
+
+Build the catalog generator:
+
+```bash
+docker compose build prepare-catalog
+```
+
+Generate a catalog:
+
+```bash
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
+```
+
+`--page-size` controls the number of rows requested from the SPARQL endpoint per page.
+
+Or limit the generated file by size:
+
+```bash
+docker compose run --rm prepare-catalog --page-size 1000 --max-file-size 10MB
+```
+
+Without `--max-rows` or `--max-file-size`, export continues until the endpoint returns an empty page.
+
+## Import the Search Catalog
+
+Every import validates the catalog before modifying PostgreSQL.
+
+Seed the catalog with:
+
+```bash
+docker compose run --rm seed
+```
+
+The importer checks:
+
+* valid CSV syntax
+* consistent row widths
+* presence of `iri`
+* presence of `label`
+* valid IRIs using RFC 3987 validation
+* duplicate IRIs
+
+If the generated CSV uses another name for its second column, that column is automatically renamed to `label`.
+
+If duplicate IRIs are found, their rows are automatically grouped and validation is retried.
+
+If validation still fails, the database remains unchanged.
+
+### Update an Existing Catalog
+
+Without `--update`, importing an IRI that already exists causes the import to fail.
+
+To insert new IRIs and replace catalog data for existing ones:
+
+```bash
+docker compose run --rm seed -- --update
+```
+
+For an existing IRI:
+
+* values from the new CSV replace the existing catalog values
+* empty fields clear previous values
+* omitted metadata columns become `NULL`
+* values are not merged with the previous database row
+
+IRIs not present in the CSV remain unchanged.
+
+### Validate Without Importing
+
+To validate the configured catalog without seeding it:
+
+```bash
+docker compose run --rm seed validate-catalog
+```
+
+The CSV is streamed during validation instead of being loaded entirely into memory.
+
+A temporary PostgreSQL staging table is used to validate and detect duplicate IRIs before any search data is changed.
+
+## Use Your Own Knowledge Graph
+
+To connect TriplePeek to another SPARQL endpoint:
+
+1. Set `SPARQL_ENDPOINT` in `.env`.
+2. Set `CSV_FILE` to the desired catalog path.
+3. Edit `src/app/data/create-catalog.sparql` for your dataset and generate the catalog.
+4. Seed PostgreSQL.
+5. Start the application.
+
+For example:
+
+```bash
+docker compose build prepare-catalog
+```
+
+```bash
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
+```
+
+```bash
+docker compose up -d db
+docker compose run --rm seed
+docker compose up -d --build app
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+If you switch to a completely different dataset and want to discard the existing search database:
 
 ```bash
 docker compose down -v
@@ -155,80 +284,59 @@ docker compose run --rm seed
 docker compose up -d --build app
 ```
 
-## Import and Update the Search Catalog
+You can also skip automatic catalog generation and provide your own CSV if you already have a curated search dataset.
 
-Without `--update`, all IRIs in the CSV must be new.
+## Catalog Generation Limits
 
-Import new catalog entries with:
+Catalog generation supports two optional limits.
 
-```bash
-docker compose run --rm seed
-```
-
-To insert new IRIs and replace catalog data for existing IRIs, use `--update`:
+Limit the number of data rows:
 
 ```bash
-docker compose run --rm seed -- --update
+docker compose run --rm prepare-catalog --page-size 1000 --max-rows 10000
 ```
 
-For an existing IRI, the new CSV row replaces its label and all searchable metadata.
-
-Empty values clear previous values, and metadata columns omitted from the CSV are cleared to `NULL` for that IRI. Values are not merged.
-
-IRIs absent from the CSV remain unchanged.
-
-Without `--update`, an existing IRI causes the entire import to fail and roll back.
-
-For a local import without Docker:
+Limit the output file size:
 
 ```bash
-npm run seed -- entity_search src/app/data/entities.csv --db triplepeek --user triplepeek --update
+docker compose run --rm prepare-catalog --page-size 1000 --max-file-size 10MB
 ```
 
-## Validate a Search Catalog
-
-Every seed validates the entire CSV before modifying the search catalog.
-
-Validation checks:
-
-* CSV syntax and consistent row widths
-* required `iri` and `label` headers
-* valid IRIs using strict RFC 3987 validation
-* duplicate IRIs
-
-Duplicate IRIs within the CSV are rejected even with `--update`.
-
-To validate without seeding in Docker:
+Both options can be combined:
 
 ```bash
-docker compose run --rm seed validate-catalog
+docker compose run --rm prepare-catalog \
+  --page-size 1000 \
+  --max-rows 100000 \
+  --max-file-size 100MB
 ```
 
-Docker Compose starts PostgreSQL automatically and waits until it is ready. The command uses `CSV_FILE` and the database credentials from `.env`; no local PostgreSQL installation or connection flags are needed.
+Export stops when the first configured limit is reached.
 
-Normal seeding also validates automatically:
+`--page-size` controls the number of rows requested from the SPARQL endpoint per page.
 
-```bash
-docker compose run --rm seed
+File sizes support:
+
+```text
+KB
+MB
+GB
+KiB
+MiB
+GiB
 ```
 
-For local use with an accessible PostgreSQL database:
+The file-size limit includes the CSV header, escaping, newlines, and UTF-8 encoding.
 
-```bash
-npm run validate-catalog -- src/app/data/entities.csv --db triplepeek --user triplepeek
-```
+The final row is never partially written.
 
-Local npm commands do not load `.env`. They support `--host`, `--port`, and `--password`.
-
-The CSV is streamed through `csv-parse`, headers and IRIs are validated, and rows are copied into a temporary PostgreSQL staging table whose primary key detects duplicate IRIs. Standalone validation discards the staging table; seeding imports it only after all checks succeed.
-
-Any failure exits with a nonzero status and leaves the search catalog unchanged.
+If export fails, the existing catalog file is left unchanged.
 
 ## Optional Query Buttons
 
-Every search result includes a **Describe** button for retrieving RDF triples for the selected resource.
+Every search result includes a **Describe** button that retrieves RDF triples for the selected entity.
 
-You can add additional query buttons by placing `.sparql` files in:
+Additional query buttons can be added by placing `.sparql` files in:
 
 ```text
 src/app/data/buttons/
@@ -238,24 +346,35 @@ For example:
 
 ```text
 src/app/data/buttons/
-  details.sparql      → Details
-  embedding.sparql    → Embedding
+  details.sparql
+  embedding.sparql
 ```
 
-Each file creates a button whose name is derived from the filename.
+Each file automatically creates a button using the filename as its name.
 
 The bundled demo includes:
 
-* `details.sparql` — retrieves the image, coordinates, and description for the selected Wikidata entity
-* `embedding.sparql` — uses the selected entity as an anchor and retrieves its embedding from another SPARQL endpoint through a federated `SERVICE` query
+* `details.sparql` — retrieves an image, coordinates, and description for the selected Wikidata entity
+* `embedding.sparql` — uses the selected entity as an anchor and retrieves its embedding from another SPARQL endpoint using `SERVICE`
 
-<img width="870" height="906" alt="Screenshot 2026-09-17 at 18 41 59" src="https://github.com/user-attachments/assets/4af5efe7-b3aa-4801-92c5-b295e24200fd" />
+<img width="870" height="906" alt="TriplePeek query buttons" src="https://github.com/user-attachments/assets/4af5efe7-b3aa-4801-92c5-b295e24200fd" />
 
-Each file can contain a read-only SPARQL `SELECT`, `ASK`, `CONSTRUCT`, or `DESCRIBE` query.
+A query file may contain a read-only:
 
-Use `<${iri}>` wherever the selected search result should act as the query anchor.
+* `SELECT`
+* `ASK`
+* `CONSTRUCT`
+* `DESCRIBE`
 
-For example:
+Use:
+
+```text
+<${iri}>
+```
+
+wherever the selected entity should be inserted.
+
+Example:
 
 ```sparql
 PREFIX schema: <http://schema.org/>
@@ -272,16 +391,24 @@ WHERE {
 }
 ```
 
-When a user opens a custom button, TriplePeek replaces `${iri}` with the IRI of the selected search result and sends the query to the configured SPARQL endpoint.
+When the button is opened, TriplePeek replaces `${iri}` with the IRI selected from the search results and sends the query to the configured SPARQL endpoint.
 
-The query can use that entity as an anchor to retrieve any data supported by the endpoint, including data from other SPARQL endpoints through `SERVICE`.
+The query can also access another endpoint through SPARQL federation:
 
-Query templates are trusted server-side configuration. SPARQL update operations are not supported.
+```sparql
+SERVICE <https://example.org/sparql> {
+  ...
+}
+```
 
-To remove a button, delete its corresponding `.sparql` file.
+Query templates are trusted server-side configuration.
 
-After adding, removing, or changing query files in Docker, rebuild the app:
+SPARQL update operations are not supported.
+
+After adding, removing, or modifying query files, rebuild the application:
 
 ```bash
 docker compose up -d --build app
 ```
+
+The search catalog can therefore remain intentionally small and optimized for discovery even when the underlying knowledge graph contains billions of triples.
