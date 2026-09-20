@@ -1,9 +1,8 @@
 <p align="center">
-  <img
-    src="./public/triplepeek-logo.svg"
-    alt="TriplePeek"
-    width="700"
-  />
+  <img 
+    src="./public/triplepeek-logo-animated.svg" 
+    width="700" 
+    alt="TriplePeek">
 </p>
 
 TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
