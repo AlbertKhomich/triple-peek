@@ -1,6 +1,10 @@
-<img width="1771" height="952" alt="TriplePeek" src="https://github.com/user-attachments/assets/de1bccb6-fac9-4a21-afc8-902ab4523114" />
-
-# TriplePeek
+<p align="center">
+  <img
+    src="./public/triplepeek-logo.svg"
+    alt="TriplePeek"
+    width="700"
+  />
+</p>
 
 TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
 
@@ -29,7 +33,16 @@ Create the environment file:
 cp .env.example .env
 ```
 
-The repository includes a ready-to-run Wikidata demo.
+The repository includes a ready-to-run Wikidata demo. 
+<details>
+  <summary>Show demo-screenshot</summary>
+
+  <br>
+
+  <img src="./public/demo-screenshot.png" alt="TriplePeek demo-screenshot">
+</details>
+<br>
+
 
 Start it:
 
