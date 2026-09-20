@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TriplePeekLogo from "./TriplePeekLogo";
 
 export default function SiteHeader() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -31,6 +32,7 @@ export default function SiteHeader() {
 
   return (
     <header className="site-header">
+      <TriplePeekLogo className="site-header-logo" />
       <button className="theme-toggle" type="button" aria-label={label} title={label} onClick={toggleTheme}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           {theme === "dark" ? (

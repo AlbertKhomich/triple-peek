@@ -139,7 +139,8 @@ body {
 * { box-sizing: border-box; }
 body { margin: 0; }
 .papers-page { display: flex; flex-direction: column; width: 100%; max-width: 900px; min-height: 100svh; margin: 0 auto; padding: 24px; font-family: var(--font-geist-sans), Arial, sans-serif; }
-.site-header { display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 16px; }
+.site-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.site-header-logo { display: block; width: 204px; max-width: calc(100% - 60px); height: auto; }
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid #d1d5db; border-radius: 12px; color: #374151; cursor: pointer; transition: background-color 150ms; }
 .theme-toggle:hover, .result-details:hover { background: #f3f4f6; }
 .dark .theme-toggle, .dark .result-details { border-color: #6b7280; color: #f3f4f6; }
