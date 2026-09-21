@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="358.45" height="358.45" viewBox="239.775 153 358.45 358.45">
+<title>TriplePeek — editable three-panel icon</title>
+<desc>Three editable vector panel layers. Transparent square canvas with the unchanged icon centered; 16 units vertical padding and 27.225 units horizontal padding.</desc>
+<defs>
+<linearGradient id="navy" x1="267" y1="210" x2="359" y2="495" gradientUnits="userSpaceOnUse"><stop stop-color="#083b6c"/><stop offset="1" stop-color="#073967"/></linearGradient>
+<linearGradient id="blue" x1="359" y1="170" x2="466" y2="491" gradientUnits="userSpaceOnUse"><stop stop-color="#009dff"/><stop offset="1" stop-color="#008ff0"/></linearGradient>
+<linearGradient id="teal" x1="491" y1="205" x2="571" y2="438" gradientUnits="userSpaceOnUse"><stop stop-color="#00bca9"/><stop offset="1" stop-color="#00b5a6"/></linearGradient>
+</defs>
+<g id="panel-left" inkscape:groupmode="layer" inkscape:label="Icon 1 — navy" fill="url(#navy)"><path id="left-panel" d="M267 218 Q267 205 278 211 L354 255 Q359 258 359 265 L359 439 Q359 445 353 449 L279 493 Q267 500 267 487 Z"/></g>
+<g id="panel-middle" inkscape:groupmode="layer" inkscape:label="Icon 2 — blue" fill="url(#blue)"><path id="middle-panel" d="M359 177 Q359 165 370 171 L461 225 Q466 228 466 235 L466 440 Q466 446 460 450 L393 489 Q382 496 382 484 L382 253 Q382 247 377 243 L364 235 Q359 232 359 227 Z"/></g>
+<g id="panel-right" inkscape:groupmode="layer" inkscape:label="Icon 3 — teal" fill="url(#teal)"><path id="right-panel" d="M491 214 Q491 201 502 207 L566 245 Q571 248 571 255 L571 389 Q571 396 565 399 L503 436 Q491 443 491 430 Z"/></g>
+</svg>

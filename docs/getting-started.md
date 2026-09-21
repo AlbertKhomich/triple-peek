@@ -1,14 +1,4 @@
-<p align="center">
-  <img src="./public/triplepeek-logo-animated.svg" width="700" alt="TriplePeek">
-</p>
-
-TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
-
-It combines a local PostgreSQL **search catalog** for fast entity discovery with configurable SPARQL queries for retrieving live RDF data.
-
-The search catalog can be provided as a CSV or generated automatically from your SPARQL endpoint.
-
-## Quick Start
+# Getting Started
 
 Requirements:
 
@@ -35,7 +25,7 @@ The repository includes a ready-to-run Wikidata demo.
 
   <br>
 
-  <img src="./public/demo-screenshot.png" alt="TriplePeek demo-screenshot">
+  <img src="assets/demo-screenshot.png" alt="TriplePeek demo-screenshot">
 </details>
 <br>
 
@@ -151,7 +141,7 @@ Each `.sparql` file creates a button automatically. You can also leave the direc
 
 ### 4. Import the catalog
 
-Reset the demo search database and import your catalog:
+Reset the demo search database and import your catalog. **The `down -v` command deletes the existing database volume and all catalog data.** To retain existing entries, use the [update import](search-catalog.md#update-an-existing-catalog) instead:
 
 ```bash
 docker compose down -v
@@ -172,12 +162,3 @@ http://localhost:3000
 ```
 
 You now have TriplePeek running against your own knowledge graph.
-
-The sections below explain the search catalog, catalog generation, validation, updates, and query buttons in more detail.
-
-## Documentation
-
-Full documentation is available at:
-
-https://albertkhomich.github.io/triple-peek/
-

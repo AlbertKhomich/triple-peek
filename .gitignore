@@ -44,3 +44,6 @@ next-env.d.ts
 # Temporary catalog export and repair files
 .prepare-catalog-*/
 .catalog-*/
+
+# MkDocs generated site
+/site/

@@ -1,0 +1,15 @@
+site_name: TriplePeek
+site_url: https://albertkhomich.github.io/triple-peek/
+
+theme:
+  name: material
+  logo: assets/triplepeek-logo-animated.svg
+  favicon: assets/icon.svg
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Search Catalog: search-catalog.md
+  - Catalog Generation: catalog-generation.md
+  - Query Buttons: query-buttons.md
+  - Configuration: configuration.md
