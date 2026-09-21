@@ -2,7 +2,8 @@
   display: none;
 }
 
-/* Hide site name in mobile navigation drawer */
-.md-nav__title {
-  display: none;
+@media screen and (max-width: 76.234375em) {
+  .md-nav__title {
+    display: none;
+  }
 }
