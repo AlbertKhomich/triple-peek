@@ -4,14 +4,6 @@ TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
 
 It combines a PostgreSQL search catalog for fast entity discovery with configurable SPARQL queries for retrieving live RDF data.
 
-## Get started
-
-- [Quick Start](getting-started.md)
-- [Search Catalog](search-catalog.md)
-- [Automatic Catalog Generation](catalog-generation.md)
-- [Query Buttons](query-buttons.md)
-- [Configuration](configuration.md)
-
 ## What TriplePeek does
 
 - Fast entity search using a local catalog

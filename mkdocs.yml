@@ -3,8 +3,18 @@ site_url: https://albertkhomich.github.io/triple-peek/
 
 theme:
   name: material
-  logo: assets/triplepeek-logo-animated.svg
+  logo: assets/triplepeek-logo.svg
   favicon: assets/icon.svg
+
+palette:
+  scheme: slate
+
+  features:
+    - navigation.tabs
+    - navigation.top
+
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Home: index.md
