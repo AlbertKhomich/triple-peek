@@ -5,11 +5,9 @@ theme:
   name: material
   logo: assets/triplepeek-logo.svg
   favicon: assets/icon.svg
-
-palette:
-  scheme: slate
-  primary: black
-  accent: blue
+  palette:
+    scheme: slate
+  
 
   features:
     - navigation.tabs
