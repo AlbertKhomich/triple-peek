@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/AlbertKhomich/triple-peek)](LICENSE)
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-supported-2496ED?logo=docker&logoColor=white)
 ![SPARQL](https://img.shields.io/badge/SPARQL-1.1-0C7BDC)
-[![Docs](https://img.shields.io/badge/docs-online-success)](https://albertkhomich.github.io/triple-peek/)
+[![Docs](https://img.shields.io/badge/docs-online-success)](https://dice-group.github.io/triple-peek/)
 
 TriplePeek is a lightweight search frontend for SPARQL knowledge graphs.
 
@@ -184,5 +184,5 @@ The sections below explain the search catalog, catalog generation, validation, u
 
 Full documentation is available at:
 
-https://albertkhomich.github.io/triple-peek/
+https://dice-group.github.io/triple-peek/
 
