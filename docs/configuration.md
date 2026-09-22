@@ -35,7 +35,7 @@ The host directory `src/app/data/` is mounted at `/src/app/data/` in the catalog
 
 - Edit `src/app/data/create-catalog.sparql` to [generate your catalog](catalog-generation.md), or provide a [catalog CSV](search-catalog.md) manually.
 - Configure `.sparql` files in `src/app/data/buttons/` for your endpoint; see [Query Buttons](query-buttons.md).
-- [Import the catalog](catalog-generation.md#import-the-search-catalog) before searching it.
+- [Import the catalog](catalog-generation.md#import-the-search-catalog) or [create manually](search-catalog.md) before searching it.
 
 Apply application configuration and query template changes with:
 
