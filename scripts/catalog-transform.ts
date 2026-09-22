@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { mkdtemp, rename, rm } from "node:fs/promises";
+import { chmod, chown, mkdtemp, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { parse } from "csv-parse";
@@ -29,7 +29,21 @@ async function writeCsv(output: string, rows: AsyncIterable<string[]>, replace =
     await pipeline(rows, async function* (records) {
       for await (const row of records) yield encodeRow(row);
     }, fs.createWriteStream(staging));
-    if (replace()) await rename(staging, output);
+    if (replace()) {
+      const original = await stat(output).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      });
+      if (original) {
+        const staged = await stat(staging);
+        if (staged.uid !== original.uid || staged.gid !== original.gid) {
+          await chown(staging, original.uid, original.gid);
+        }
+        // Apply permissions after chown, which can clear special mode bits.
+        await chmod(staging, original.mode & 0o7777);
+      }
+      await rename(staging, output);
+    }
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

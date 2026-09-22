@@ -140,7 +140,7 @@ Each `.sparql` file creates a button automatically. You can also leave the direc
 
 ### 4. Import the catalog
 
-Reset the demo search database and import your catalog. **The `down -v` command deletes the existing database volume and all catalog data.** To retain existing entries, use the [update import](search-catalog.md#update-an-existing-catalog) instead:
+Reset the demo search database and import your catalog. **The `down -v` command deletes the existing database volume and all catalog data.** To retain existing entries, skip `down -v` instead. [More about update.](catalog-generation.md#update-an-existing-catalog)
 
 ```bash
 docker compose down -v
