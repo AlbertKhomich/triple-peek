@@ -1,3 +1,14 @@
 .md-header__title {
   display: none;
 }
+
+/* Keep mobile drawer logo, hide only the site name text */
+@media screen and (max-width: 76.234375em) {
+  .md-nav--primary > .md-nav__title {
+    font-size: 0;
+  }
+
+  .md-nav--primary > .md-nav__title .md-logo {
+    font-size: initial;
+  }
+}
