@@ -20,12 +20,11 @@ cp .env.example .env
 ```
 
 The repository includes a ready-to-run Wikidata demo. 
-<details>
-  <summary>Show demo-screenshot</summary>
+<details markdown="1">
+<summary>Show demo screenshot</summary>
 
-  <br>
+![TriplePeek demo screenshot](assets/demo-screenshot.png)
 
-  <img src="assets/demo-screenshot.png" alt="TriplePeek demo-screenshot">
 </details>
 <br>
 
