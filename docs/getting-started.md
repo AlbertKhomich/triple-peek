@@ -32,7 +32,7 @@ The repository includes a ready-to-run Wikidata demo.
 Start it:
 
 ```bash
-docker compose build
+docker compose build app
 docker compose up -d db
 docker compose run --rm seed
 docker compose up -d app
